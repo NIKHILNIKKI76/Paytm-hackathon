@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#002970">
+  <title>Car Insurance Renewal | Paytm Hackathon</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header><div class="wrap nav">
+    <a class="brand" href="/" aria-label="Paytm Insurance home">pay<span>tm</span><b>Insurance</b></a>
+    <nav aria-label="Main navigation"><a href="#renewal">Car insurance</a><a href="#help">Help</a></nav>
+  </div></header>
+  <main class="wrap" id="renewal">
+    <div class="breadcrumb">Insurance <span aria-hidden="true">/</span> Car insurance</div>
+    <section class="hero" aria-labelledby="title">
+      <div><p class="eyebrow">CAR INSURANCE</p><h1 id="title">Renew your car<br>insurance with clarity.</h1>
+      <p>Compare insurers and see how each quote fits your car, your budget and the cover you want to keep.</p></div>
+      <div class="hero-art"><img src="/car.webp" alt="" width="768" height="512"></div>
+    </section>
+    <div class="workspace">
+      <section class="card journey" aria-label="Renewal journey">
+        <ol class="steps" aria-label="Renewal progress">
+          <li aria-current="step">Your car</li><li>Current cover</li><li>Quotes</li>
+        </ol>
+        <p id="feedback" role="status" aria-live="polite"></p>
+        <section id="car">
+          <h2>Tell us about your car</h2>
+          <p>Start with your registration number or enter your vehicle details.</p>
+          <form id="car-form">
+            <div id="registration-fields"><label>Registration number<input name="registration" placeholder="DL01AB1234" required maxlength="20" autocomplete="off"></label></div>
+            <fieldset id="manual-fields" hidden disabled><legend>Vehicle details</legend><div class="fields">
+              <label>Registration city<input name="city" required maxlength="80"></label><label>Make<input name="make" required maxlength="80"></label>
+              <label>Model<input name="model" required maxlength="80"></label><label>Variant<input name="variant" required maxlength="80"></label>
+              <label>Registration year<input name="year" required type="number" min="1900"></label>
+            </div></fieldset>
+            <div class="actions"><button>Continue</button><button type="button" class="link" id="manual">Enter details manually</button><button type="button" class="link" id="sample">Try sample renewal</button></div>
+          </form>
+        </section>
+        <section id="cover" hidden>
+          <h2>Review your current cover</h2>
+          <p>Upload a sample policy to prefill details, or enter them below.</p>
+          <form id="upload-form" class="panel">
+            <label>Policy PDF, PNG or JPEG <input name="file" type="file" accept="application/pdf,image/png,image/jpeg" required></label>
+            <label class="check"><input type="checkbox" required> I agree to send extracted text to Sarvam for processing.</label>
+            <button class="secondary">Read policy</button>
+          </form>
+          <form id="cover-form">
+            <div class="fields">
+              <label>Current insurer<input name="insurer" maxlength="120"></label>
+              <label>Policy expiry<input name="expiry" type="date"></label>
+              <label>Current cover<select name="cover"><option value="">Choose cover</option><option value="comprehensive">Comprehensive</option><option value="third_party">Third-party</option><option value="own_damage">Own damage</option></select></label>
+              <label>Insured value (₹)<input name="idv" type="number" min="0"></label>
+              <label>Compulsory deductible (₹)<input name="compulsoryDeductible" type="number" min="0"></label>
+              <label>Voluntary deductible (₹)<input name="voluntaryDeductible" type="number" min="0"></label>
+              <label>Claims since issuance<select name="claimedSinceIssuance"><option value="">Choose an answer</option><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label>Prior No Claim Bonus (%)<input name="priorNcb" type="number" min="0" max="100"></label>
+            </div>
+            <fieldset><legend>Current add-ons</legend><label class="check"><input type="checkbox" name="addOns" value="zero_depreciation"> Zero depreciation</label><label class="check"><input type="checkbox" name="addOns" value="roadside_assistance"> Roadside assistance</label><label class="check"><input type="checkbox" name="addOns" value="engine_protection"> Engine protection</label><label class="check"><input type="checkbox" name="addOns" value="return_to_invoice"> Return to invoice</label></fieldset>
+            <div id="keep-cover" class="panel" hidden><label>Keep zero depreciation?
+              <select name="keep"><option value="">Decide later</option><option value="required">Must have</option><option value="preferred">Nice to have</option><option value="optional">Optional</option></select>
+            </label></div>
+            <div class="actions"><button>See quotes</button><button type="button" class="link" id="back-car">Back</button></div>
+          </form>
+        </section>
+        <section id="quotes" hidden>
+          <div class="heading"><div><h2>Compare your quotes</h2><p id="quote-summary"></p></div><button type="button" class="link" id="back-cover">Edit current cover</button></div>
+          <details id="edit-preferences"><summary>Preferences used <span id="preferences-summary"></span></summary>
+            <form id="preferences-form">
+              <div class="fields">
+                <label>Budget for one year (₹)<input name="budget" type="number" min="1"></label>
+                <label>Budget type<select name="budgetMode"><option value="">Choose type</option><option value="hard">Hard limit</option><option value="flexible">Flexible</option></select></label>
+                <label>Priority<select name="priority"><option value="">Choose a priority</option><option value="price">Lower upfront price</option><option value="repair_cost">Lower repair contribution</option><option value="compare">Show both</option></select></label>
+                <label>Zero depreciation<select name="keep"><option value="">Decide later</option><option value="required">Must have</option><option value="preferred">Nice to have</option><option value="optional">Optional</option></select></label>
+                <label>Minimum insured value (₹)<input name="minimumIdv" type="number" min="0"></label><label>Preferred cashless garage<input name="garage" maxlength="120"></label>
+              </div>
+              <div class="actions"><button>Update quotes</button></div>
+            </form>
+            <form id="ai-form" class="panel"><label>Describe your preferences <input name="text" maxlength="1500" required placeholder="I can spend ₹10,000 and want to keep zero depreciation"></label><button class="secondary">Suggest preferences</button></form>
+            <div class="actions"><button type="button" class="secondary" id="save">Save for next renewal</button><button type="button" class="link" id="clear-saved">Clear saved preferences</button></div>
+          </details>
+          <div id="inline-prompt"></div>
+          <div class="actions"><button type="button" class="secondary" id="sort">Sort by price</button><button type="button" class="link" id="policy-comparison" aria-pressed="false">Compare with my policy</button></div>
+          <div id="quote-list"></div>
+          <div id="selection" class="panel" hidden></div>
+        </section>
+      </section>
+      <aside class="card side"><h2>How renewal works</h2><ol><li><strong>Confirm your cover</strong><span>Use your previous policy or enter details.</span></li><li><strong>Compare the trade-offs</strong><span>See premiums, insured values and deductibles together.</span></li><li><strong>Choose a quote</strong><span>Review what’s included before selecting.</span></li></ol><div class="demo"><strong>Hackathon demo</strong><p>Sample insurers and quotes. Quote selection ends the demo.</p></div></aside>
+    </div>
+    <section id="help" class="help"><h2>Car insurance questions</h2>
+      <details><summary>What is insured declared value (IDV)?</summary><p>The value used for theft or total loss, subject to the insurer’s policy terms.</p></details>
+      <details><summary>What are deductibles?</summary><p>The amounts you contribute towards an applicable claim. A voluntary deductible can increase that contribution.</p></details>
+      <details><summary>How are recommendations made?</summary><p>Confirmed requirements filter quotes. Your priorities help order the matching offers. You can review or change those preferences.</p></details>
+    </section>
+  </main>
+  <footer><div class="wrap">Paytm Hackathon <span>Car insurance renewal prototype</span></div></footer>
+</body>
+</html>

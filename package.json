@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sarvam": "node --env-file=.env sarvam.ts"
+  },
+  "dependencies": {
+    "sarvamai": "1.1.19"
+  }
+}
