@@ -80,6 +80,9 @@ export function createInsuranceServer({
       throw new InputError('Request origin is not allowed.', 403);
     }
     const user = accounts.identify(request);
+    if (pathname === '/insurance/status' && method === 'GET') {
+      return { data: { aiConfigured: Boolean(assistant), model: 'sarvam-105b', scope: 'private_car_renewal' } };
+    }
     if (method === 'POST' && ['/insurance/signup', '/insurance/signin'].includes(pathname)) {
       const signup = pathname.endsWith('/signup');
       const profile = await accounts.authenticate(await json(request), signup, response, request);
@@ -106,14 +109,26 @@ export function createInsuranceServer({
         if (typeof message !== 'string' || !message.trim() || message.length > 1200) {
           throw new InputError('Enter a message of up to 1,200 characters.');
         }
+        const before = accounts.read(user.id);
+        const snapshot = before.journey;
+        const latest = snapshot && (journeys.get(snapshot.id) ?? snapshot);
+        const now = clock();
+        const baseline = replyToCustomer(message, latest, now, before.messages);
+        const prefs = Object.fromEntries(Object.entries(latest?.preferences ?? {}).map(([key, item]) => [key, item.value]));
+        // Rebuild the comparison after reload or coverage edits instead of relying on an old cache.
+        const comparison = latest && vehicleKey(latest.vehicle)
+          ? await results(latest, prefs, now, quoteProvider) : null;
+        const useAi = request.headers['x-ai-consent'] === 'true';
+        if (useAi && !assistant?.explain) throw new InputError('Configure SARVAM_API_KEY to enable Sarvam chat.', 503);
+        const reply = useAi ? await assistant.explain(message, {
+          policy: latest?.policy ?? {}, preferences: prefs, comparison,
+          selectedQuoteId: latest?.selectedQuoteId ?? null, factualAnswer: baseline,
+        }, before.messages) : baseline;
         const { messages } = accounts.update(user.id, (context) => {
-          const snapshot = context.journey;
-          const latest = snapshot && (journeys.get(snapshot.id) ?? snapshot);
-          const reply = replyToCustomer(message, latest, clock(), context.messages);
           context.messages = [...(context.messages ?? []), { role: 'user', text: message.trim() },
             { role: 'assistant', text: reply }].slice(-40);
         });
-        return { data: { messages } };
+        return { data: { messages, provider: useAi ? 'sarvam' : 'local' } };
       }
     }
     if (pathname === '/insurance/journeys' && method === 'POST') {
@@ -152,6 +167,31 @@ export function createInsuranceServer({
     const action = match[2];
     const now = clock();
     const preferences = () => Object.fromEntries(Object.entries(journey.preferences).map(([key, item]) => [key, item.value]));
+
+    if (action === 'chat' && !journey.accountId) {
+      if (method === 'GET') return { data: { messages: journey.messages ?? [] } };
+      if (method === 'DELETE') {
+        journey.messages = [];
+        return { data: { messages: [] } };
+      }
+      if (method === 'POST') {
+        const { message } = await json(request);
+        if (typeof message !== 'string' || !message.trim() || message.length > 1200) {
+          throw new InputError('Enter a message of up to 1,200 characters.');
+        }
+        const useAi = request.headers['x-ai-consent'] === 'true';
+        if (useAi && !assistant?.explain) throw new InputError('Configure SARVAM_API_KEY to enable Sarvam chat.', 503);
+        const comparison = await results(journey, preferences(), now, quoteProvider);
+        const baseline = replyToCustomer(message, journey, now, journey.messages);
+        const reply = useAi ? await assistant.explain(message, {
+          policy: journey.policy, preferences: preferences(), comparison,
+          selectedQuoteId: journey.selectedQuoteId, factualAnswer: baseline,
+        }, journey.messages) : baseline;
+        journey.messages = [...(journey.messages ?? []), { role: 'user', text: message.trim() },
+          { role: 'assistant', text: reply }].slice(-40);
+        return { data: { messages: journey.messages, provider: useAi ? 'sarvam' : 'local' } };
+      }
+    }
 
     if (!action && method === 'GET') return { data: view(journey) };
 

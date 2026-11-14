@@ -20,6 +20,22 @@ let priceSort = false;
 let comparePolicy = false;
 let busy = false;
 let vehicleSuggestion;
+let sampleMode = false;
+let activeStep = 'car';
+let preferenceUpdatePending = false;
+let toastTimer;
+
+function toast(title, detail = '', state = 'success') {
+  clearTimeout(toastTimer);
+  const box = find('#update-toast');
+  box.hidden = false;
+  box.dataset.state = state;
+  find('#toast-title').textContent = title;
+  find('#toast-detail').textContent = detail;
+  find('#toast-icon').textContent = state === 'pending' ? '↻' : state === 'error' ? '!' : '✓';
+  if (state !== 'pending') toastTimer = setTimeout(() => { box.hidden = true; }, 5500);
+}
+find('#dismiss-toast').addEventListener('click', () => { find('#update-toast').hidden = true; });
 
 function notify(message = '', error = false) {
   feedback.textContent = message;
@@ -38,6 +54,8 @@ function run(callback) {
       await callback(event);
     } catch (error) {
       notify(error.message, true);
+      preferenceUpdatePending = false;
+      toast('Could not update', error.message, 'error');
     } finally {
       if (button) button.disabled = false;
       busy = false;
@@ -68,8 +86,25 @@ function step(name) {
     find('#' + id).hidden = name !== id;
     if (name === id) steps[i].setAttribute('aria-current', 'step');
     else steps[i].removeAttribute('aria-current');
+    steps[i].classList.toggle('completed', i < sections.indexOf(name));
+    steps[i].querySelector('button').disabled = id !== 'car' && !journey;
   });
+  if (name !== activeStep && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    find('#' + name).animate([
+      { opacity: 0, transform: `translateX(${sections.indexOf(name) > sections.indexOf(activeStep) ? '24px' : '-24px'})` },
+      { opacity: 1, transform: 'translateX(0)' },
+    ], { duration: 240, easing: 'ease-out' });
+  }
+  activeStep = name;
 }
+
+document.querySelector('.steps').addEventListener('click', run(async (event) => {
+  const target = event.target.closest('[data-step]')?.dataset.step;
+  if (!target) return;
+  if (target !== 'car' && !journey) return notify('Start with your car or try the sample renewal.');
+  if (target === 'quotes') await showQuotes();
+  else step(target);
+}));
 
 function populate(form, values) {
   for (const [key, value] of Object.entries(values)) {
@@ -105,6 +140,7 @@ function addOnPreference(prefs, keep) {
 }
 
 async function start(vehicle, policy) {
+  sampleMode = false;
   const data = { vehicle, policy, ...(token ? { customerToken: token } : {}) };
   try {
     journey = await api('', { method: 'POST', data });
@@ -119,6 +155,7 @@ async function start(vehicle, policy) {
     localStorage.setItem('insurance-demo-token', token);
   }
   renderJourney();
+  renderAccount();
 }
 
 function renderJourney() {
@@ -127,6 +164,7 @@ function renderJourney() {
   vehicleSuggestion = null;
   find('#vehicle-suggestion').hidden = true;
   fillPolicy(journey.policy);
+  populate(coverForm, { startDate: journey.vehicle.startDate, termMonths: journey.vehicle.termMonths ?? 12 });
   populate(coverForm, { keep: keepValue(confirmed()) });
   priceSort = false;
   comparePolicy = false;
@@ -135,6 +173,10 @@ function renderJourney() {
 }
 
 function patch(data) {
+  if (data.preferences) {
+    preferenceUpdatePending = true;
+    toast('Updating your preferences…', 'Refreshing provider matches with your changes.', 'pending');
+  }
   return api(route(), { method: 'PATCH', data }).then((value) => { journey = value; });
 }
 
@@ -182,6 +224,8 @@ function renderQuotes() {
     const { quote } = row;
     const best = result.recommendedQuoteId === quote.id;
     const card = node('article', undefined, best ? 'quote best' : 'quote');
+    card.append(node('p', row.rank != null ? `Preference rank #${row.rank}` : row.misses.length || row.verify.length
+      ? 'Outside your confirmed requirements or needs verification' : 'Neutral comparison — choose a priority to rank providers'));
     if (best) card.append(node('div', 'Best match for your preferences', 'tag'));
     const heading = node('div', undefined, 'heading');
     heading.append(node('h3', `${quote.insurer} · ${quote.product}`), node('span', money(quote.premium), 'price'));
@@ -190,6 +234,10 @@ function renderQuotes() {
     for (const [key, value] of [
       ['Insured value (IDV)', money(quote.idv)], ['Compulsory deductible', money(quote.compulsoryDeductible)],
       ['Voluntary deductible', money(quote.voluntaryDeductible)],
+      ['Quote reference', quote.id], ['Start date', quote.startDate], ['Valid until', new Date(quote.expiresAt).toLocaleString()],
+      ['No Claim Bonus', quote.ncb == null ? 'Check insurer terms' : `${quote.ncb}%`],
+      ['Cashless garages', quote.garages?.join(', ') || 'Not verified'],
+      ['Add-on limits', quote.addOnLimits ? JSON.stringify(quote.addOnLimits) : 'Check insurer terms'],
       ['Included add-ons', quote.addOns ? quote.addOns.map((key) => labels[key] ?? key).join(', ') || 'None' : 'Check insurer terms'],
     ]) {
       const item = node('div');
@@ -197,6 +245,8 @@ function renderQuotes() {
       details.append(item);
     }
     card.append(details);
+    if (quote.source === 'sample') card.append(node('p', 'Sample quote — no live insurer offer or purchase.'));
+    if (row.checkInsurerTerms.length) card.append(node('p', 'Unconfirmed terms: ' + row.checkInsurerTerms.join(', ')));
     for (const reason of [...row.reasons, ...row.misses, ...row.verify, ...(quote.conditions ?? [])]) card.append(node('p', reason));
     const changes = comparePolicy ? row.vsCurrentPolicy : row.vsQuote;
     if (changes) {
@@ -255,6 +305,10 @@ async function showQuotes() {
   renderPreferences();
   renderQuotes();
   step('quotes');
+  if (preferenceUpdatePending) {
+    preferenceUpdatePending = false;
+    toast('Preferences updated', 'Your comparison is refreshed. Chat will use these saved preferences.');
+  }
 }
 
 find('#manual').addEventListener('click', () => {
@@ -273,10 +327,19 @@ carForm.addEventListener('submit', run(async () => {
   await start(vehicle);
 }));
 
-find('#sample').addEventListener('click', run(() => start({ registration: 'DL01AB1234' }, {
-  insurer: 'Sample previous insurer', cover: 'comprehensive', idv: 510000,
-  compulsoryDeductible: 1000, voluntaryDeductible: 0, addOns: [zeroDep], priorNcb: 0,
-})));
+find('#sample').addEventListener('click', run(async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  await start({ registration: 'DL01AB1234', city: 'Delhi', make: 'Sample', model: 'Demo Car', variant: 'Petrol', year: 2023, startDate: today, termMonths: 12 }, {
+    insurer: 'Sample previous insurer', cover: 'comprehensive', idv: 510000,
+    expiry: today, thirdPartyExpiry: today, claimedSinceIssuance: false,
+    compulsoryDeductible: 1000, voluntaryDeductible: 0, addOns: [zeroDep], priorNcb: 0,
+  });
+  sampleMode = true;
+  populate(carForm, journey.vehicle);
+  await patch({ preferences: { budget: 10000, budgetMode: 'hard', priority: 'price', requiredAddOns: [zeroDep], preferredAddOns: [], minimumIdv: null, garage: null, cover: null } });
+  await showQuotes();
+  notify('Synthetic sample loaded. Edit Preferences used to update the comparison and chat context automatically.');
+}));
 
 coverForm.addEventListener('change', ({ target }) => {
   if (target.name === 'addOns') find('#keep-cover').hidden = !currentAddOns().includes(zeroDep);
@@ -306,7 +369,7 @@ find('#upload-form').addEventListener('submit', run(async () => {
 
 coverForm.addEventListener('submit', run(async () => {
   const data = new FormData(coverForm);
-  const policy = Object.fromEntries(['insurer','expiry','cover','idv','compulsoryDeductible','voluntaryDeductible','claimedSinceIssuance','priorNcb'].map((key) => {
+  const policy = Object.fromEntries(['insurer','expiry','thirdPartyExpiry','cover','idv','compulsoryDeductible','voluntaryDeductible','claimedSinceIssuance','priorNcb'].map((key) => {
     const value = data.get(key);
     if (!value) return [key, null];
     if (key === 'claimedSinceIssuance') return [key, value === 'true'];
@@ -314,10 +377,10 @@ coverForm.addEventListener('submit', run(async () => {
   }));
   policy.addOns = data.getAll('addOns').length || Array.isArray(journey.policy.addOns) || !suggestion.hidden
     ? data.getAll('addOns') : null;
-  const input = { policy };
+  const input = { policy, vehicle: { startDate: data.get('startDate') || null, termMonths: Number(data.get('termMonths')) } };
   const keep = data.get('keep');
   if (keep && !find('#keep-cover').hidden) input.preferences = addOnPreference(confirmed(), keep);
-  if (!suggestion.hidden && useSuggestedVehicle.checked) input.vehicle = vehicleSuggestion;
+  if (!suggestion.hidden && useSuggestedVehicle.checked) Object.assign(input.vehicle, vehicleSuggestion);
   await patch(input);
   await showQuotes();
 }));
@@ -329,12 +392,17 @@ preferenceForm.addEventListener('submit', run(async () => {
     budget: values.budget ? Number(values.budget) : null, budgetMode: values.budgetMode || null,
     priority: values.priority || null, minimumIdv: values.minimumIdv ? Number(values.minimumIdv) : null,
     garage: values.garage || null,
+    cover: values.cover || null,
   };
   if (values.keep !== keepValue(confirmed())) Object.assign(preferences, addOnPreference(confirmed(), values.keep));
   await patch({ preferences });
   priceSort = false;
   await showQuotes();
 }));
+
+preferenceForm.addEventListener('change', () => {
+  if (sampleMode && !busy && preferenceForm.checkValidity()) preferenceForm.requestSubmit();
+});
 
 find('#ai-form').addEventListener('submit', run(async () => {
   const text = new FormData(find('#ai-form')).get('text');
@@ -349,6 +417,19 @@ find('#sort').addEventListener('click', run(async () => {
   priceSort = true;
   renderPreferences();
   renderQuotes();
+}));
+find('#ranking-examples').addEventListener('click', run(async (event) => {
+  const example = event.target.closest('[data-example]')?.dataset.example;
+  if (!example) return;
+  const presets = {
+    price: { budget: 14000, budgetMode: 'hard', priority: 'price', requiredAddOns: [], preferredAddOns: [] },
+    addon: { budget: 10000, budgetMode: 'hard', priority: 'price', requiredAddOns: [zeroDep], preferredAddOns: [] },
+    repairs: { budget: 14000, budgetMode: 'hard', priority: 'repair_cost', requiredAddOns: [], preferredAddOns: [] },
+  };
+  await patch({ preferences: { ...presets[example], minimumIdv: null, garage: null, cover: 'comprehensive' } });
+  priceSort = false;
+  await showQuotes();
+  notify('Applied synthetic ranking example. Review or edit these preferences below.');
 }));
 find('#policy-comparison').addEventListener('click', (event) => {
   comparePolicy = !comparePolicy;
@@ -413,8 +494,8 @@ function renderAccount() {
   find('#account-submit').textContent = signup ? 'Create account' : 'Sign in';
   find('#account-switch').textContent = signup ? 'Back to sign in' : 'Create account';
   accountForm.elements.password.autocomplete = signup ? 'new-password' : 'current-password';
-  find('#chat-content').hidden = !user;
-  find('#chat-gate').hidden = Boolean(user);
+  find('#chat-content').hidden = !user && !journey;
+  find('#chat-gate').hidden = Boolean(user || journey);
 }
 
 async function restoreAccount() {
@@ -440,9 +521,23 @@ function renderMessages(messages) {
 }
 
 async function showChat() {
+  renderAccount();
+  updateChatProvider();
   find('#chat-feedback').textContent = '';
   chatDialog.showModal();
-  if (user) renderMessages((await accountApi('chat')).messages);
+  if (user || journey) renderMessages((await chatApi()).messages);
+}
+
+function updateChatProvider() {
+  find('#chat-provider-status').textContent = find('#chat-ai-consent').checked
+    ? 'Sarvam AI is selected. Replies use your latest confirmed preferences and comparison.'
+    : 'AI is off. Enable Use Sarvam AI below; otherwise replies come from the local helper.';
+}
+find('#chat-ai-consent').addEventListener('change', updateChatProvider);
+
+async function chatApi(method = 'GET', data) {
+  if (user) return accountApi('chat', method, data);
+  return api(route('/chat'), { method, data });
 }
 
 find('#open-chat').addEventListener('click', dialogAction('#chat-feedback', showChat));
@@ -499,8 +594,15 @@ find('#signout').addEventListener('click', dialogAction('#account-feedback', asy
   accountDialog.close();
 }));
 async function sendMessage(message) {
-  const { messages } = await accountApi('chat', 'POST', { message });
+  find('#chat-feedback').textContent = 'Preparing your reply…';
+  const response = await fetch(user ? '/insurance/chat' : base + route('/chat'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-AI-Consent': String(find('#chat-ai-consent').checked), ...(!user && token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ message }),
+  });
+  const { messages, provider, error } = await response.json();
+  if (!response.ok) throw new Error(error);
   renderMessages(messages);
+  find('#chat-feedback').textContent = provider === 'sarvam' ? 'Reply from Sarvam AI.' : 'Reply from local confirmed-data helper. Enable Sarvam above for AI explanations.';
   chatForm.reset();
   chatForm.elements.message.focus();
 }
@@ -509,10 +611,15 @@ for (const prompt of find('#chat-questions').querySelectorAll('button')) {
   prompt.addEventListener('click', dialogAction('#chat-feedback', () => sendMessage(prompt.textContent)));
 }
 find('#clear-chat').addEventListener('click', dialogAction('#chat-feedback', async () => {
-  renderMessages((await accountApi('chat', 'DELETE')).messages);
+  renderMessages((await chatApi('DELETE')).messages);
   find('#chat-feedback').textContent = 'Chat history cleared.';
 }));
 
 busy = true;
+fetch('/insurance/status').then((response) => response.json()).then((status) => {
+  find('#ai-status').textContent = status.aiConfigured
+    ? 'Sarvam configured for policy reading and preference suggestions. AI chat is optional.'
+    : 'Sarvam is not configured. Manual renewal and local chat are available.';
+}).catch(() => { find('#ai-status').textContent = 'Could not check Sarvam configuration.'; });
 restoreAccount().catch(() => notify('Could not load your account. You can try signing in again.', true))
   .finally(() => { busy = false; });

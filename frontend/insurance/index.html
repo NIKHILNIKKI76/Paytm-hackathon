@@ -16,16 +16,17 @@
   <main class="wrap" id="renewal">
     <div class="breadcrumb">Insurance <span aria-hidden="true">/</span> Car insurance</div>
     <section class="hero" aria-labelledby="title">
-      <div><p class="eyebrow">CAR INSURANCE</p><h1 id="title">Renew your car<br>insurance with clarity.</h1>
-      <p>Compare insurers and see how each quote fits your car, your budget and the cover you want to keep.</p></div>
+      <div><p class="eyebrow">YOUR RENEWAL, ONE CLEAR JOURNEY</p><h1 id="title">Your car. Your priorities.<br>Your next cover.</h1>
+      <p>Move from your details to a comparison that updates with you.</p></div>
       <div class="hero-art"><img src="/car.webp" alt="" width="768" height="512"></div>
     </section>
     <div class="workspace">
       <section class="card journey" aria-label="Renewal journey">
         <ol class="steps" aria-label="Renewal progress">
-          <li aria-current="step">Your car</li><li>Current cover</li><li>Quotes</li>
+          <li aria-current="step"><button type="button" data-step="car"><span class="step-number">01</span><span>Your car<small>Start with your details</small></span></button></li><li><button type="button" data-step="cover"><span class="step-number">02</span><span>Current cover<small>Review what you have</small></span></button></li><li><button type="button" data-step="quotes"><span class="step-number">03</span><span>Compare & choose<small>Find your preferred fit</small></span></button></li>
         </ol>
         <p id="feedback" role="status" aria-live="polite"></p>
+        <p id="ai-status" role="status">Checking Sarvam connection configuration…</p>
         <section id="car">
           <h2>Tell us about your car</h2>
           <p>Start with your registration number or enter your vehicle details.</p>
@@ -50,7 +51,10 @@
           <form id="cover-form">
             <div class="fields">
               <label>Current insurer<input name="insurer" maxlength="120"></label>
+              <label>Desired renewal start date<input name="startDate" type="date"></label>
+              <label>Renewal term<select name="termMonths"><option value="12">12 months (demo)</option></select></label>
               <label>Policy expiry<input name="expiry" type="date"></label>
+              <label>Third-party cover expiry (for standalone own damage)<input name="thirdPartyExpiry" type="date"></label>
               <label>Current cover<select name="cover"><option value="">Choose cover</option><option value="comprehensive">Comprehensive</option><option value="third_party">Third-party</option><option value="own_damage">Own damage</option></select></label>
               <label>Insured value (₹)<input name="idv" type="number" min="0"></label>
               <label>Compulsory deductible (₹)<input name="compulsoryDeductible" type="number" min="0"></label>
@@ -67,12 +71,23 @@
         </section>
         <section id="quotes" hidden>
           <div class="heading"><div><h2>Compare your quotes</h2><p id="quote-summary"></p></div><button type="button" class="link" id="back-cover">Edit current cover</button></div>
-          <details id="edit-preferences"><summary>Preferences used <span id="preferences-summary"></span></summary>
+          <div class="comparison-flow">
+          <div class="preference-column">
+          <p class="column-label"><span>01</span> Set your preferences <b aria-hidden="true">→</b></p>
+          <div class="panel"><strong>Try sample — compare five fictional providers</strong><p>All names, premiums and terms below are synthetic examples. In sample mode, changing a preference updates the ranking automatically. Insurance chat uses the latest confirmed values without requiring sign-in.</p>
+            <div class="actions" id="ranking-examples">
+              <button type="button" class="secondary" data-example="price">Lowest premium</button>
+              <button type="button" class="secondary" data-example="addon">Zero depreciation under ₹10,000</button>
+              <button type="button" class="secondary" data-example="repairs">Lower deductible under ₹14,000</button>
+            </div>
+          </div>
+          <details id="edit-preferences" open><summary>Preferences used <span id="preferences-summary"></span></summary>
             <form id="preferences-form">
               <div class="fields">
                 <label>Budget for one year (₹)<input name="budget" type="number" min="1"></label>
                 <label>Budget type<select name="budgetMode"><option value="">Choose type</option><option value="hard">Hard limit</option><option value="flexible">Flexible</option></select></label>
                 <label>Priority<select name="priority"><option value="">Choose a priority</option><option value="price">Lower upfront price</option><option value="repair_cost">Lower repair contribution</option><option value="compare">Show both</option></select></label>
+                <label>Requested cover<select name="cover"><option value="">Use current cover</option><option value="comprehensive">Comprehensive</option><option value="third_party">Third-party</option><option value="own_damage">Own damage</option></select></label>
                 <label>Zero depreciation<select name="keep"><option value="">Decide later</option><option value="required">Must have</option><option value="preferred">Nice to have</option><option value="optional">Optional</option></select></label>
                 <label>Minimum insured value (₹)<input name="minimumIdv" type="number" min="0"></label><label>Preferred cashless garage<input name="garage" maxlength="120"></label>
               </div>
@@ -82,12 +97,17 @@
             <div class="actions"><button type="button" class="secondary" id="save">Save for next renewal</button><button type="button" class="link" id="clear-saved">Clear saved preferences</button></div>
           </details>
           <div id="inline-prompt"></div>
+          </div>
+          <div class="results-column">
+          <p class="column-label"><span>02</span> Review your matches <b aria-hidden="true">→</b> Choose a quote</p>
           <div class="actions"><button type="button" class="secondary" id="sort">Sort by price</button><button type="button" class="link" id="policy-comparison" aria-pressed="false">Compare with my policy</button></div>
           <div id="quote-list"></div>
           <div id="selection" class="panel" hidden></div>
+          </div>
+          </div>
         </section>
       </section>
-      <aside class="card side"><h2>How renewal works</h2><ol><li><strong>Confirm your cover</strong><span>Use your previous policy or enter details.</span></li><li><strong>Compare the trade-offs</strong><span>See premiums, insured values and deductibles together.</span></li><li><strong>Choose a quote</strong><span>Review what’s included before selecting.</span></li></ol><div class="demo"><strong>Hackathon demo</strong><p>Sample insurers and quotes. Quote selection ends the demo.</p></div></aside>
+      <aside class="card side"><h2>How renewal works</h2><ol><li><strong>Confirm your cover</strong><span>Use your previous policy or enter details.</span></li><li><strong>Compare the trade-offs</strong><span>See premiums, insured values and deductibles together.</span></li><li><strong>Choose a quote</strong><span>Review what’s included before selecting.</span></li></ol><div class="demo"><strong>Hackathon demo</strong><p>Five fictional providers and synthetic quotes. Quote selection ends the demo.</p></div></aside>
     </div>
     <section id="help" class="help"><h2>Car insurance questions</h2>
       <details><summary>What is insured declared value (IDV)?</summary><p>The value used for theft or total loss, subject to the insurer’s policy terms.</p></details>
@@ -96,6 +116,7 @@
     </section>
   </main>
   <button type="button" id="open-chat" aria-haspopup="dialog">Insurance chat</button>
+  <div id="update-toast" class="update-toast" role="status" aria-live="polite" hidden><span id="toast-icon" aria-hidden="true">✓</span><div><strong id="toast-title"></strong><p id="toast-detail"></p></div><button type="button" id="dismiss-toast" aria-label="Dismiss notification">×</button></div>
   <dialog id="account-dialog" aria-labelledby="account-title">
     <div class="heading"><h2 id="account-title">Sign in</h2><button type="button" class="link" id="close-account" aria-label="Close account panel">Close</button></div>
     <p id="account-feedback" role="status"></p>
@@ -112,6 +133,8 @@
     <p>Ask about your current policy, renewal preferences, or sample quotes.</p>
     <div id="chat-gate"><p>Sign in or create an account to use your renewal context in chat.</p><button type="button" id="chat-signin">Sign in</button></div>
     <div id="chat-content" hidden>
+      <p id="chat-provider-status" role="status">AI is off. Enable Sarvam below to receive an AI reply.</p>
+      <label class="check"><input id="chat-ai-consent" type="checkbox"> Use Sarvam AI: send my message, recent chat, confirmed policy details and sample quote comparison for explanation.</label>
       <div id="messages" role="log" aria-live="polite" aria-label="Chat messages" tabindex="0"></div>
       <div class="actions" id="chat-questions">
         <button type="button" class="secondary">What preferences are you using?</button>

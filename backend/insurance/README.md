@@ -3,12 +3,15 @@
 Run from the repository root with Node 24 and installed npm dependencies.
 
 ```sh
-node backend/insurance/server.js
-# To enable Sarvam extraction using the local environment file
-node --env-file=.env backend/insurance/server.js
+npm install
+npm start
+# Run the integration and ranking checks
+npm test
 ```
 
-The API binds to localhost on port 3001 by default. Signed-in accounts, the latest renewal context, saved preferences and chat history are stored in local SQLite (`.insurance.sqlite`, configurable with `INSURANCE_DB`). Guest data and quote results are in memory. The demo supplies only the two sample one-year comprehensive quotes. It stops at quote selection. The returned customer token is a demo bearer credential and must be kept private. A production deployment needs public-facing account recovery, email verification, HTTPS and insurer integrations.
+Open http://127.0.0.1:3001 for the frontend and API together. `npm start` loads `.env` if it exists; configure `SARVAM_API_KEY` there to enable AI features. Keep that file private. If another process uses port 3001, run `INSURANCE_PORT=3002 npm start` and open port 3002. The current frontend uses browser JavaScript and CSS, with no frontend build step.
+
+The API binds to localhost on port 3001 by default. Signed-in accounts, the latest renewal context, saved preferences and chat history are stored in local SQLite (`.insurance.sqlite`, configurable with `INSURANCE_DB`). Guest data and quote results are in memory. The demo supplies five fictional one-year comprehensive quotes. It stops at quote selection. The returned customer token is a demo bearer credential and must be kept private. A production deployment needs public-facing account recovery, email verification, HTTPS and insurer integrations.
 
 ## API
 
@@ -35,6 +38,14 @@ Extraction requires `SARVAM_API_KEY` and sends extracted text to Sarvam. PDF ext
 
 ## Accounts and chat
 
-Use the page's **Sign in** button to create an account or return to your latest renewal. **Insurance chat** uses that account's confirmed car, policy, preferences and current quotes. It answers supported questions directly from those fields and keeps up to 40 messages per account. Customers can clear chat history. The chat answers locally and does not require a Sarvam key.
+Use the page's **Sign in** button to create an account or return to your latest renewal. **Insurance chat** uses that account's confirmed policy, preferences and current sample comparison. It keeps up to 40 messages per account. Customers can clear chat history. By default, chat answers locally without an API key. Opt into the **Use Sarvam AI** checkbox to send the message, recent conversation and confirmed context to `sarvam-105b` for explanation. AI cannot update preferences, determine quote eligibility, or select a quote. Failures are reported without exposing credentials; manual comparison remains available.
+
+`GET /insurance/status` reports whether the provider is configured (not a live connectivity check). `POST /insurance/chat` accepts `X-AI-Consent: true` to use Sarvam and returns `provider: "sarvam"`; without consent it returns `provider: "local"`. Document extraction has its separate required consent header. All API keys remain on the server.
+
+Current scope follows the latest root `insurance.md`: private-car renewal using five synthetic comprehensive quotes, ending at selection. Health insurance and claims are outside this implementation. Quote dates, requested cover, term, NCB, garage availability, and unknown add-on terms are displayed for review. Sample quotes do not constitute live insurer prices or verified coverage.
 
 Account endpoints are `POST /insurance/signup`, `POST /insurance/signin`, `POST /insurance/signout`, and `GET /insurance/account`. Signup and sign-in accept email and password and establish an HTTP-only cookie. Signed-in renewal routes use the cookie. `GET /insurance/chat` reads history, `POST /insurance/chat` accepts `{"message":"What preferences are you using?"}`, and `DELETE /insurance/chat` clears history.
+
+See [SYNTHETIC_DATA.md](SYNTHETIC_DATA.md) for the provider fixture and ranking examples.
+
+**Try sample renewal** now prefills the sample context and opens comparison immediately. Preference changes apply automatically in sample mode. Guest journeys can use their bearer-protected `/insurance/journeys/<id>/chat` endpoint without signing in; Sarvam still requires explicit AI consent. Signed-in users retain their account chat and latest confirmed context. See the root [DEMO.md](../../DEMO.md) for the tested presentation sequence.

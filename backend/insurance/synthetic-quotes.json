@@ -1,0 +1,27 @@
+[
+  {
+    "id": "quote-a", "insurer": "Sample Insurer A", "product": "Comprehensive Plus",
+    "premium": 9400, "idv": 500000, "compulsoryDeductible": 1000, "voluntaryDeductible": 0,
+    "addOns": ["zero_depreciation"]
+  },
+  {
+    "id": "quote-b", "insurer": "Sample Insurer B", "product": "Comprehensive Basic",
+    "premium": 8500, "idv": 470000, "compulsoryDeductible": 1000, "voluntaryDeductible": 1000,
+    "addOns": []
+  },
+  {
+    "id": "quote-c", "insurer": "Demo Cedar Insurance", "product": "Low Deductible Plus",
+    "premium": 12900, "idv": 550000, "compulsoryDeductible": 500, "voluntaryDeductible": 0,
+    "addOns": ["zero_depreciation", "roadside_assistance", "engine_protection"]
+  },
+  {
+    "id": "quote-d", "insurer": "Demo Maple Insurance", "product": "Roadside Comfort",
+    "premium": 10900, "idv": 520000, "compulsoryDeductible": 1000, "voluntaryDeductible": 1000,
+    "addOns": ["zero_depreciation", "roadside_assistance"]
+  },
+  {
+    "id": "quote-e", "insurer": "Demo Willow Insurance", "product": "Value Protection",
+    "premium": 11900, "idv": 600000, "compulsoryDeductible": 1000, "voluntaryDeductible": 0,
+    "addOns": ["zero_depreciation", "roadside_assistance", "return_to_invoice"]
+  }
+]

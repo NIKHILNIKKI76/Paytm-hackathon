@@ -91,3 +91,61 @@ dialog::backdrop{background:#0a294e60}
 #chat-form{display:flex;gap:10px;align-items:end;margin-top:14px}
 #chat-form label{flex:1;min-width:0}
 #chat-feedback:empty,#account-feedback:empty{display:none}
+
+/* A horizontal journey, with preferences feeding the comparison. */
+.wrap{width:min(1400px,calc(100% - 64px))}
+.hero{min-height:205px;border-radius:20px}
+.hero-art{min-height:205px}
+.hero h1{font-size:clamp(1.8rem,3vw,2.7rem)}
+.hero p:not(.eyebrow){max-width:480px}
+.workspace{grid-template-columns:minmax(0,1fr);margin-top:24px}
+.workspace>.side{display:none}
+.journey{padding:26px;min-width:0}
+.steps{gap:22px;margin-bottom:24px}
+.steps li{position:relative;padding:0;border:0}
+.steps li:not(:last-child)::after{content:'→';position:absolute;right:-17px;top:22px;color:#7895af}
+.steps button{width:100%;display:flex;align-items:center;gap:12px;padding:16px;text-align:left;border:1px solid var(--line);border-radius:12px;background:#f7fafc;color:var(--muted)}
+.step-number{display:grid;place-items:center;flex:0 0 35px;height:35px;border-radius:50%;background:#e7eef5;font-size:.8rem}
+.steps small{display:block;margin-top:5px;font-weight:400;font-size:.76rem}
+.steps [aria-current] button{background:#002970;color:#fff;border-color:#002970;box-shadow:0 4px 12px #00297020}
+.steps [aria-current] .step-number{background:#00baf2;color:#002970}
+.steps .completed button{background:#ecfbf5;border-color:#bce8d7;color:#146448}
+.steps .completed .step-number{background:#d2f3e4}
+#ai-status{font-size:.8rem;margin-bottom:22px}
+#car,#cover{max-width:840px;margin-inline:auto;padding-block:12px}
+.comparison-flow{display:grid;grid-template-columns:minmax(290px,.85fr) minmax(0,1.65fr);gap:30px;align-items:start;margin-top:24px}
+.preference-column{background:#f5f9fd;border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.results-column{min-width:0}
+.column-label{display:flex;align-items:center;gap:8px;margin:0 0 18px;color:var(--navy);font-size:.85rem;font-weight:700}
+.column-label span{display:grid;place-items:center;background:#def4fb;border-radius:50%;width:28px;height:28px;font-size:.72rem;flex-shrink:0}
+.column-label b{margin-inline:auto;color:#007fa9;font-size:1.2rem}
+.preference-column .fields{grid-template-columns:1fr}
+.preference-column .panel{background:#fff;margin-top:0}
+.preference-column #preferences-summary{display:block;margin:8px 0;font-size:.78rem;line-height:1.6}
+.preference-column #ranking-examples{display:grid;gap:8px}
+.preference-column #ranking-examples button{text-align:left;border-radius:9px;margin:0;font-size:.8rem}
+.results-column>.actions{margin-top:0;justify-content:flex-end}
+#quote-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:14px}
+#quote-list>.panel{grid-column:1/-1}
+.quote{background:#fff;padding:19px;min-width:0;overflow-wrap:anywhere;transition:border-color .2s,background .2s}
+.quote.best{background:linear-gradient(145deg,#effbff,#fff);grid-column:1/-1}
+.quote .heading{flex-wrap:wrap;gap:8px}
+.quote .price{font-size:1.55rem}
+.quote.best .price{font-size:1.85rem}
+.quote:not(.best) dl{grid-template-columns:1fr}
+.quote>p:first-child{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#50718d}
+.update-toast{position:fixed;right:26px;top:82px;z-index:20;display:flex;align-items:flex-start;gap:12px;width:min(420px,calc(100vw - 32px));padding:17px;border:1px solid #b8e5d5;border-radius:14px;background:#fff;box-shadow:0 14px 45px #10264a24;animation:toast-in .22s ease-out}
+#toast-icon{display:grid;place-items:center;background:#dff7ed;color:#146448;width:29px;height:29px;border-radius:50%;font-weight:800;flex-shrink:0}
+.update-toast strong{font-size:.9rem;color:var(--navy)}
+.update-toast p{font-size:.8rem;margin:5px 0 0;line-height:1.5}
+#dismiss-toast{color:#52677e;background:transparent;border:0;padding:0 4px;margin-left:auto;font-size:1.35rem;line-height:1}
+.update-toast[data-state=pending]{border-color:#bee9f6}
+.update-toast[data-state=pending] #toast-icon{background:#e6f7fd;color:#006b99;animation:toast-spin 1s linear infinite}
+.update-toast[data-state=error]{border-color:#f3c2bc}
+.update-toast[data-state=error] #toast-icon{background:#ffebe8;color:#9b3024}
+@keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toast-spin{to{transform:rotate(360deg)}}
+@media(max-width:1000px){#quote-list{grid-template-columns:1fr}.quote:not(.best) dl{grid-template-columns:1fr 1fr}.comparison-flow{grid-template-columns:minmax(260px,.9fr) minmax(0,1.2fr);gap:18px}}
+@media(max-width:760px){.wrap{width:calc(100% - 24px)}.journey{padding:16px}.steps{gap:14px}.steps button{padding:10px 7px;gap:7px;font-size:.74rem}.steps small{display:none}.steps li:not(:last-child)::after{right:-12px;top:17px;font-size:.8rem}.step-number{flex-basis:25px;height:25px;font-size:.65rem}.comparison-flow{grid-template-columns:1fr}.column-label b{margin-left:8px}.update-toast{right:16px;top:76px}.preference-column .fields{grid-template-columns:1fr 1fr}}
+@media(max-width:450px){.preference-column .fields{grid-template-columns:1fr}.steps button{flex-direction:column;align-items:flex-start;min-height:78px}.steps li:not(:last-child)::after{top:31px}.quote dl{grid-template-columns:1fr 1fr}.hero{padding-top:18px}}
+@media(prefers-reduced-motion:reduce){.update-toast,.update-toast[data-state=pending] #toast-icon{animation:none}.quote{transition:none}}

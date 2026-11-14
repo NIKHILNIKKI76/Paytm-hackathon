@@ -1,20 +1,9 @@
-const sampleQuotes = [
-  {
-    id: 'quote-a', insurer: 'Sample Insurer A', product: 'Comprehensive Plus',
-    premium: 9400, idv: 500000, compulsoryDeductible: 1000, voluntaryDeductible: 0,
-    addOns: ['zero_depreciation'],
-  },
-  {
-    id: 'quote-b', insurer: 'Sample Insurer B', product: 'Comprehensive Basic',
-    premium: 8500, idv: 470000, compulsoryDeductible: 1000, voluntaryDeductible: 1000,
-    addOns: [],
-  },
-];
+import sampleQuotes from './synthetic-quotes.json' with { type: 'json' };
 
 export function demoQuotes({ vehicle, cover, termMonths, now }) {
   if (cover !== 'comprehensive' || termMonths !== 12) return [];
   return sampleQuotes.map((quote) => ({
-    ...quote, cover, termMonths, startDate: vehicle.startDate ?? now.slice(0, 10),
+    ...structuredClone(quote), cover, termMonths, startDate: vehicle.startDate ?? now.slice(0, 10),
     expiresAt: new Date(Date.parse(now) + 30 * 60_000).toISOString(),
     currency: 'INR', ncb: null, garages: null, addOnLimits: null, termsUrl: null,
     conditions: [], eligibility: 'eligible', source: 'sample',
@@ -119,6 +108,8 @@ export function compareQuotes(quotes, preferences, policy, now) {
     recommendedQuoteId: best?.quote.id ?? null,
     comparisonBaselineQuoteId: baseline?.quote.id ?? null,
     quotes: [...confirmed, ...rows.filter((row) => row.misses.length || row.verify.length)].map((row) => {
+      const rank = neutral || row.misses.length || row.verify.length ? null
+        : 1 + confirmed.filter((other) => compare(other, row) < 0).length;
       const reasons = [...row.matches];
       if (row === best && preferences.priority === 'price' && known(row.quote.premium)) {
         reasons.push('Lowest upfront premium among confirmed matches.');
@@ -130,7 +121,7 @@ export function compareQuotes(quotes, preferences, policy, now) {
         .filter((field) => !known(row.quote[field]));
       if (!known(row.quote.addOns)) checks.push('addOns');
       return {
-        ...row, reasons, checkInsurerTerms: checks,
+        ...row, rank, reasons, checkInsurerTerms: checks,
         vsQuote: baseline === row ? null : differences(baseline.quote, row.quote),
         vsCurrentPolicy: Object.keys(policy).length ? differences(policy, row.quote) : null,
       };
