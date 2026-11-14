@@ -23,13 +23,14 @@ export function createAppServer({ databasePath = ':memory:' } = {}) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const port = Number(process.env.PORT ?? 3001);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be an integer from 1 to 65535.');
+  const host = process.env.RENDER === 'true' ? '0.0.0.0' : '127.0.0.1';
   const server = createAppServer({ databasePath: process.env.INSURANCE_DB ?? '.insurance.sqlite' });
   server.on('error', (error) => {
     console.error(`Unable to start on port ${port}: ${error.message}`);
     server.emit('close');
     process.exitCode = 1;
   });
-  server.listen(port, '127.0.0.1', () => {
+  server.listen(port, host, () => {
     console.log(`Insurance: http://127.0.0.1:${port}/`);
     console.log(`Lending: http://127.0.0.1:${port}/lending/`);
   });
