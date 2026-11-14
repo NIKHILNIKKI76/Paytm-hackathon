@@ -8,7 +8,7 @@ node backend/insurance/server.js
 node --env-file=.env backend/insurance/server.js
 ```
 
-The API binds to localhost on port 3001 by default. All data is in memory. The demo supplies only the two sample one-year comprehensive quotes. It stops at quote selection. The returned customer token is a demo bearer credential and must be kept private. A production deployment needs application authentication, durable storage and insurer integrations.
+The API binds to localhost on port 3001 by default. Signed-in accounts, the latest renewal context, saved preferences and chat history are stored in local SQLite (`.insurance.sqlite`, configurable with `INSURANCE_DB`). Guest data and quote results are in memory. The demo supplies only the two sample one-year comprehensive quotes. It stops at quote selection. The returned customer token is a demo bearer credential and must be kept private. A production deployment needs public-facing account recovery, email verification, HTTPS and insurer integrations.
 
 ## API
 
@@ -31,3 +31,10 @@ Routes below are relative to `/insurance/journeys/<id>`.
 For the sample walkthrough, PATCH `{"preferences":{"budget":10000,"budgetMode":"hard","requiredAddOns":["zero_depreciation"],"priority":"repair_cost"}}`, then GET the quotes. Set `requiredAddOns` to an empty array and `priority` to `price` to see Quote B. Field names and supported values are defined in [inputs.js](inputs.js).
 
 Extraction requires `SARVAM_API_KEY` and sends extracted text to Sarvam. PDF extraction uses Poppler's `pdftotext` for text-based PDFs. PNG and JPEG extraction uses Tesseract. For scanned PDFs, upload a page image or enter details manually. Files and extracted text are processed in memory. Quote explanations use deterministic amounts and reasons derived from the quote fields.
+
+
+## Accounts and chat
+
+Use the page's **Sign in** button to create an account or return to your latest renewal. **Insurance chat** uses that account's confirmed car, policy, preferences and current quotes. It answers supported questions directly from those fields and keeps up to 40 messages per account. Customers can clear chat history. The chat answers locally and does not require a Sarvam key.
+
+Account endpoints are `POST /insurance/signup`, `POST /insurance/signin`, `POST /insurance/signout`, and `GET /insurance/account`. Signup and sign-in accept email and password and establish an HTTP-only cookie. Signed-in renewal routes use the cookie. `GET /insurance/chat` reads history, `POST /insurance/chat` accepts `{"message":"What preferences are you using?"}`, and `DELETE /insurance/chat` clears history.

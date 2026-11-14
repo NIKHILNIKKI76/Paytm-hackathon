@@ -6,6 +6,8 @@ import { createAssistant, policyText } from './assistant.js';
 import {
   fields, InputError, policyFields, preferenceFields, promptIds, reusablePreferences, vehicleFields, vehicleKey,
 } from './inputs.js';
+import { createAccounts } from './accounts.js';
+import { replyToCustomer } from './chat.js';
 import { compareQuotes, demoQuotes } from './quotes.js';
 
 async function body(request, limit = 32_768) {
@@ -57,37 +59,94 @@ export function createInsuranceServer({
   quoteProvider = demoQuotes,
   assistant = createAssistant(process.env.SARVAM_API_KEY?.trim()),
   clock = () => new Date().toISOString(),
+  databasePath = ':memory:',
 } = {}) {
+  const accounts = createAccounts(databasePath);
   const customers = new Map();
   const journeys = new Map();
 
-  async function route(request) {
+  function remember(journey) {
+    if (!journey.accountId) return;
+    const { customerToken, quoteSet, ...snapshot } = journey;
+    accounts.update(journey.accountId, (context) => { context.journey = snapshot; });
+  }
+
+  async function route(request, response) {
     const { pathname } = new URL(request.url, 'http://localhost');
     const method = request.method;
+    const origin = request.headers.origin;
+    if (!['GET', 'HEAD'].includes(method) && origin &&
+        !['http://', 'https://'].some((scheme) => origin === scheme + request.headers.host)) {
+      throw new InputError('Request origin is not allowed.', 403);
+    }
+    const user = accounts.identify(request);
+    if (method === 'POST' && ['/insurance/signup', '/insurance/signin'].includes(pathname)) {
+      const signup = pathname.endsWith('/signup');
+      const profile = await accounts.authenticate(await json(request), signup, response, request);
+      return { status: signup ? 201 : 200, data: { user: profile } };
+    }
+    if (pathname === '/insurance/signout' && method === 'POST') {
+      accounts.signOut(request, response);
+      return { data: { user: null } };
+    }
+    if (pathname === '/insurance/account' && method === 'GET') {
+      const snapshot = user && accounts.read(user.id).journey;
+      if (snapshot && !journeys.has(snapshot.id)) journeys.set(snapshot.id, { ...snapshot, quoteSet: null });
+      return { data: { user, journey: snapshot ? view(journeys.get(snapshot.id)) : null } };
+    }
+    if (pathname === '/insurance/chat') {
+      if (!user) throw new InputError('Sign in to use your insurance chat.', 401);
+      if (method === 'GET') return { data: { messages: accounts.read(user.id).messages ?? [] } };
+      if (method === 'DELETE') {
+        accounts.update(user.id, (context) => { delete context.messages; });
+        return { data: { messages: [] } };
+      }
+      if (method === 'POST') {
+        const { message } = await json(request);
+        if (typeof message !== 'string' || !message.trim() || message.length > 1200) {
+          throw new InputError('Enter a message of up to 1,200 characters.');
+        }
+        const { messages } = accounts.update(user.id, (context) => {
+          const snapshot = context.journey;
+          const latest = snapshot && (journeys.get(snapshot.id) ?? snapshot);
+          const reply = replyToCustomer(message, latest, clock(), context.messages);
+          context.messages = [...(context.messages ?? []), { role: 'user', text: message.trim() },
+            { role: 'assistant', text: reply }].slice(-40);
+        });
+        return { data: { messages } };
+      }
+    }
     if (pathname === '/insurance/journeys' && method === 'POST') {
       const input = await json(request);
       const vehicle = fields(input.vehicle ?? {}, vehicleFields);
       const policy = fields(input.policy ?? {}, policyFields);
       const key = vehicleKey(vehicle);
       let customerToken = input.customerToken;
-      if (customerToken === undefined) {
+      if (!user && customerToken === undefined) {
         customerToken = randomUUID();
         customers.set(customerToken, new Map());
       }
-      const saved = customers.get(customerToken);
-      if (!saved) throw new InputError('Customer token not found.', 404);
+      const saved = user ? null : customers.get(customerToken);
+      if (!user && !saved) throw new InputError('Customer token not found.', 404);
       const journey = {
-        id: randomUUID(), vehicle, policy, customerToken,
-        preferences: structuredClone(saved.get(key) ?? {}), skipped: [],
+        id: randomUUID(), vehicle, policy, customerToken: user ? undefined : customerToken, accountId: user?.id,
+        preferences: structuredClone((user ? accounts.read(user.id).saved?.[key] : saved.get(key)) ?? {}), skipped: [],
         priceSorts: 0, selectedQuoteId: null, quoteSet: null,
       };
       journeys.set(journey.id, journey);
-      return { status: 201, data: { ...view(journey), customerToken } };
+      remember(journey);
+      return { status: 201, data: { ...view(journey), customerToken: journey.customerToken } };
     }
 
     const match = /^\/insurance\/journeys\/([^/]+)(?:\/([^/]+))?$/.exec(pathname);
+    const snapshot = user && match && accounts.read(user.id).journey;
+    if (snapshot?.id === match?.[1] && snapshot && !journeys.has(snapshot.id)) {
+      journeys.set(snapshot.id, { ...snapshot, quoteSet: null });
+    }
     const journey = match && journeys.get(match[1]);
-    if (!journey || request.headers.authorization !== `Bearer ${journey.customerToken}`) {
+    const ownsJourney = journey?.accountId ? journey.accountId === user?.id :
+      !user && journey?.customerToken && request.headers.authorization === `Bearer ${journey.customerToken}`;
+    if (!ownsJourney) {
       throw new InputError('Journey not found.', 404);
     }
     const action = match[2];
@@ -106,7 +165,8 @@ export function createInsuranceServer({
       const currentKey = vehicleKey(journey.vehicle);
       if (previousKey !== currentKey) {
         journey.policy = {};
-        journey.preferences = structuredClone(customers.get(journey.customerToken).get(currentKey) ?? {});
+        journey.preferences = structuredClone((user ? accounts.read(user.id).saved?.[currentKey] :
+          customers.get(journey.customerToken).get(currentKey)) ?? {});
         journey.priceSorts = 0;
         journey.skipped = [];
       }
@@ -118,6 +178,7 @@ export function createInsuranceServer({
       if (Object.keys(vehicle).length || Object.keys(policy).length || Object.keys(changes).length) {
         journey.selectedQuoteId = null;
       }
+      remember(journey);
       return { data: view(journey) };
     }
 
@@ -127,24 +188,28 @@ export function createInsuranceServer({
       else if (input.type === 'skip_prompt' && promptIds.includes(input.promptId)) {
         if (!journey.skipped.includes(input.promptId)) journey.skipped.push(input.promptId);
       } else throw new InputError('Unknown journey event.');
+      remember(journey);
       return { data: view(journey) };
     }
 
     if (action === 'saved-preferences') {
       const key = vehicleKey(journey.vehicle);
       if (!key) throw new InputError('Confirm the car before saving preferences.', 409);
-      const saved = customers.get(journey.customerToken);
+      const saved = user ? null : customers.get(journey.customerToken);
       if (method === 'PUT') {
         const { keys } = await json(request);
         if (!Array.isArray(keys) || keys.some((name) => !reusablePreferences.includes(name) ||
           !Object.hasOwn(journey.preferences, name))) {
           throw new InputError('Choose confirmed, reusable preference keys.');
         }
-        saved.set(key, Object.fromEntries(keys.map((name) => [name, structuredClone(journey.preferences[name])])));
+        const values = Object.fromEntries(keys.map((name) => [name, structuredClone(journey.preferences[name])]));
+        if (user) accounts.update(user.id, (context) => { (context.saved ??= {})[key] = values; });
+        else saved.set(key, values);
         return { data: { savedKeys: [...new Set(keys)] } };
       }
       if (method === 'DELETE') {
-        saved.delete(key);
+        if (user) accounts.update(user.id, (context) => { if (context.saved) delete context.saved[key]; });
+        else saved.delete(key);
         return { data: { savedKeys: [] } };
       }
     }
@@ -181,6 +246,7 @@ export function createInsuranceServer({
         throw new InputError('Choose an eligible quote that meets the confirmed requirements.', 409);
       }
       journey.selectedQuoteId = quoteId;
+      remember(journey);
       return { data: { selectedQuoteId: quoteId, status: 'selected' } };
     }
 
@@ -194,7 +260,7 @@ export function createInsuranceServer({
     ['/car.webp', ['car.webp', 'image/webp']],
   ]);
 
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     const page = request.method === 'GET' && pages.get(request.url.split('?')[0]);
     if (page) {
       try {
@@ -209,7 +275,7 @@ export function createInsuranceServer({
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     response.setHeader('Cache-Control', 'no-store');
     try {
-      const { status = 200, data } = await route(request);
+      const { status = 200, data } = await route(request, response);
       response.writeHead(status).end(JSON.stringify(data));
     } catch (error) {
       const expected = error instanceof InputError;
@@ -217,6 +283,8 @@ export function createInsuranceServer({
         .end(JSON.stringify({ error: expected ? error.message : 'Insurance request failed.' }));
     }
   });
+  server.once('close', () => accounts.close());
+  return server;
 }
 
 function view(journey) {
@@ -267,7 +335,7 @@ async function results(journey, preferences, now, quoteProvider) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const port = Number(process.env.INSURANCE_PORT ?? 3001);
-  createInsuranceServer().listen(port, '127.0.0.1', () => {
+  createInsuranceServer({ databasePath: process.env.INSURANCE_DB ?? '.insurance.sqlite' }).listen(port, '127.0.0.1', () => {
     process.stdout.write(`Insurance API listening on http://127.0.0.1:${port}\n`);
   });
 }

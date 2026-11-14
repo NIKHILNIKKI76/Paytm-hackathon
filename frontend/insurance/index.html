@@ -11,7 +11,7 @@
 <body>
   <header><div class="wrap nav">
     <a class="brand" href="/" aria-label="Paytm Insurance home">pay<span>tm</span><b>Insurance</b></a>
-    <nav aria-label="Main navigation"><a href="#renewal">Car insurance</a><a href="#help">Help</a></nav>
+    <nav aria-label="Main navigation"><a href="#renewal">Car insurance</a><a href="#help">Help</a><button type="button" class="secondary" id="account-button">Sign in</button></nav>
   </div></header>
   <main class="wrap" id="renewal">
     <div class="breadcrumb">Insurance <span aria-hidden="true">/</span> Car insurance</div>
@@ -95,6 +95,33 @@
       <details><summary>How are recommendations made?</summary><p>Confirmed requirements filter quotes. Your priorities help order the matching offers. You can review or change those preferences.</p></details>
     </section>
   </main>
+  <button type="button" id="open-chat" aria-haspopup="dialog">Insurance chat</button>
+  <dialog id="account-dialog" aria-labelledby="account-title">
+    <div class="heading"><h2 id="account-title">Sign in</h2><button type="button" class="link" id="close-account" aria-label="Close account panel">Close</button></div>
+    <p id="account-feedback" role="status"></p>
+    <form id="account-form">
+      <p>Your account keeps your renewal details and chat together.</p>
+      <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+      <label>Password<input name="password" type="password" required minlength="10" maxlength="128" autocomplete="current-password"></label>
+      <div class="actions"><button id="account-submit">Sign in</button><button type="button" class="link" id="account-switch">Create account</button></div>
+    </form>
+    <div id="account-profile" hidden><p id="account-email"></p><button type="button" id="signout">Sign out</button></div>
+  </dialog>
+  <dialog id="chat-dialog" aria-labelledby="chat-title">
+    <div class="heading"><h2 id="chat-title">Insurance chat</h2><button type="button" class="link" id="close-chat" aria-label="Close chat">Close</button></div>
+    <p>Ask about your current policy, renewal preferences, or sample quotes.</p>
+    <div id="chat-gate"><p>Sign in or create an account to use your renewal context in chat.</p><button type="button" id="chat-signin">Sign in</button></div>
+    <div id="chat-content" hidden>
+      <div id="messages" role="log" aria-live="polite" aria-label="Chat messages" tabindex="0"></div>
+      <div class="actions" id="chat-questions">
+        <button type="button" class="secondary">What preferences are you using?</button>
+        <button type="button" class="secondary">Why does this quote match?</button>
+      </div>
+      <form id="chat-form"><label>Your message<input name="message" maxlength="1200" required autocomplete="off" placeholder="Ask about your renewal"></label><button>Send</button></form>
+      <button type="button" class="link" id="clear-chat">Clear chat history</button>
+    </div>
+    <p id="chat-feedback" role="status"></p>
+  </dialog>
   <footer><div class="wrap">Paytm Hackathon <span>Car insurance renewal prototype</span></div></footer>
 </body>
 </html>

@@ -13,6 +13,7 @@ const labels = {
   price: 'Lower upfront price', repair_cost: 'Lower repair contributions', compare: 'Show both',
 };
 let journey;
+let user;
 let token = localStorage.getItem('insurance-demo-token');
 let result;
 let priceSort = false;
@@ -113,8 +114,14 @@ async function start(vehicle, policy) {
     delete data.customerToken;
     journey = await api('', { method: 'POST', data });
   }
-  token = journey.customerToken;
-  localStorage.setItem('insurance-demo-token', token);
+  if (journey.customerToken) {
+    token = journey.customerToken;
+    localStorage.setItem('insurance-demo-token', token);
+  }
+  renderJourney();
+}
+
+function renderJourney() {
   coverForm.reset();
   find('#upload-form').reset();
   vehicleSuggestion = null;
@@ -358,3 +365,154 @@ find('#clear-saved').addEventListener('click', run(async () => {
   await api(route('/saved-preferences'), { method: 'DELETE' });
   notify('Saved preferences cleared for future visits.');
 }));
+
+
+const accountDialog = find('#account-dialog');
+const chatDialog = find('#chat-dialog');
+const accountForm = find('#account-form');
+const chatForm = find('#chat-form');
+let signup = false;
+let returnToChat = false;
+
+async function accountApi(action, method = 'GET', data) {
+  const response = await fetch('/insurance/' + action, {
+    method,
+    ...(data ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) } : {}),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error);
+  return payload;
+}
+
+function dialogAction(feedbackId, callback) {
+  return async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    const output = find(feedbackId);
+    const control = event.submitter ?? (event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null);
+    if (control) control.disabled = true;
+    output.textContent = '';
+    try {
+      await callback(event);
+    } catch (error) {
+      output.textContent = error.message;
+    } finally {
+      if (control) control.disabled = false;
+      busy = false;
+    }
+  };
+}
+
+function renderAccount() {
+  find('#account-title').textContent = user ? 'Your account' : signup ? 'Create account' : 'Sign in';
+  find('#account-button').textContent = user ? 'Your account' : 'Sign in';
+  find('#account-email').textContent = user?.email ?? '';
+  accountForm.hidden = Boolean(user);
+  find('#account-profile').hidden = !user;
+  find('#account-submit').textContent = signup ? 'Create account' : 'Sign in';
+  find('#account-switch').textContent = signup ? 'Back to sign in' : 'Create account';
+  accountForm.elements.password.autocomplete = signup ? 'new-password' : 'current-password';
+  find('#chat-content').hidden = !user;
+  find('#chat-gate').hidden = Boolean(user);
+}
+
+async function restoreAccount() {
+  const profile = await accountApi('account');
+  user = profile.user;
+  if (user) {
+    journey = profile.journey;
+    if (journey) renderJourney();
+    else step('car');
+  }
+  renderAccount();
+}
+
+function renderMessages(messages) {
+  const log = find('#messages');
+  log.replaceChildren();
+  for (const item of messages) {
+    const entry = node('div', undefined, 'message ' + item.role);
+    entry.append(node('strong', item.role === 'user' ? 'You' : 'Insurance assistant'), node('p', item.text));
+    log.append(entry);
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+async function showChat() {
+  find('#chat-feedback').textContent = '';
+  chatDialog.showModal();
+  if (user) renderMessages((await accountApi('chat')).messages);
+}
+
+find('#open-chat').addEventListener('click', dialogAction('#chat-feedback', showChat));
+find('#close-chat').addEventListener('click', () => chatDialog.close());
+find('#close-account').addEventListener('click', () => accountDialog.close());
+find('#account-button').addEventListener('click', () => {
+  returnToChat = false;
+  find('#account-feedback').textContent = '';
+  accountDialog.showModal();
+});
+find('#chat-signin').addEventListener('click', () => {
+  chatDialog.close();
+  returnToChat = true;
+  find('#account-feedback').textContent = '';
+  accountDialog.showModal();
+});
+find('#account-switch').addEventListener('click', () => {
+  signup = !signup;
+  accountForm.elements.password.value = '';
+  find('#account-feedback').textContent = '';
+  renderAccount();
+});
+accountForm.addEventListener('submit', dialogAction('#account-feedback', async () => {
+  const guest = !user && journey;
+  const credentials = Object.fromEntries(new FormData(accountForm));
+  await accountApi(signup ? 'signup' : 'signin', 'POST', credentials);
+  accountForm.reset();
+  await restoreAccount();
+  if (guest && !journey) {
+    await start(guest.vehicle, guest.policy);
+    const preferences = Object.fromEntries(Object.entries(guest.preferences).map(([key, field]) => [key, field.value]));
+    if (Object.keys(preferences).length) {
+      await patch({ preferences });
+      renderJourney();
+    }
+  }
+  accountDialog.close();
+  if (returnToChat) await showChat();
+}));
+find('#signout').addEventListener('click', dialogAction('#account-feedback', async () => {
+  await accountApi('signout', 'POST');
+  user = null;
+  journey = null;
+  result = null;
+  token = null;
+  localStorage.removeItem('insurance-demo-token');
+  carForm.reset();
+  coverForm.reset();
+  chatForm.reset();
+  renderMessages([]);
+  find('#quote-list').replaceChildren();
+  renderAccount();
+  step('car');
+  accountDialog.close();
+}));
+async function sendMessage(message) {
+  const { messages } = await accountApi('chat', 'POST', { message });
+  renderMessages(messages);
+  chatForm.reset();
+  chatForm.elements.message.focus();
+}
+chatForm.addEventListener('submit', dialogAction('#chat-feedback', () => sendMessage(chatForm.elements.message.value)));
+for (const prompt of find('#chat-questions').querySelectorAll('button')) {
+  prompt.addEventListener('click', dialogAction('#chat-feedback', () => sendMessage(prompt.textContent)));
+}
+find('#clear-chat').addEventListener('click', dialogAction('#chat-feedback', async () => {
+  renderMessages((await accountApi('chat', 'DELETE')).messages);
+  find('#chat-feedback').textContent = 'Chat history cleared.';
+}));
+
+busy = true;
+restoreAccount().catch(() => notify('Could not load your account. You can try signing in again.', true))
+  .finally(() => { busy = false; });
