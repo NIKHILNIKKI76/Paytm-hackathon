@@ -3,11 +3,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { readFile } from "node:fs/promises";
 import { buildProfile, DEMO_AS_OF, selectScenario } from "./demo-data.ts";
 import { assessEligibility } from "./eligibility.ts";
 import { crossCheckIncome, parseSalarySlips } from "./income.ts";
 import { createSarvamRewrite, explainAssessment } from "./bot.ts";
-import type { Rewrite } from "./bot.ts";
+import type { ChatTurn, Rewrite } from "./bot.ts";
 import { DEMO_NOTICE } from "./types.ts";
 import type { IncomeCheck, Profile, Scenario } from "./types.ts";
 import { amount, identity, InputError, object, textField } from "./validation.ts";
@@ -15,6 +16,7 @@ import { amount, identity, InputError, object, textField } from "./validation.ts
 interface Application {
   id: string; expiresAt: number; maskedPan: string; maskedPhone: string;
   profile: Profile; requestedAmount: number; monthlyBudget: number | null; incomeCheck?: IncomeCheck;
+  chatHistory: ChatTurn[]; chatPending: boolean;
 }
 interface ServerOptions { apiKey?: string; rewrite?: Rewrite; now?: () => number }
 async function readJson(request: IncomingMessage) {
@@ -56,8 +58,25 @@ export function createLendingServer(options: ServerOptions = {}) {
     try {
       for (const [id, application] of applications) if (application.expiresAt <= now()) applications.delete(id);
       const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+      if (request.method === "GET" && pathname === "/") {
+        response.writeHead(302, { Location: "/lending/" }).end(); return;
+      }
+      const pages = new Map([
+        ["/lending", ["index.html", "text/html; charset=utf-8"]],
+        ["/lending/", ["index.html", "text/html; charset=utf-8"]],
+        ["/lending/styles.css", ["styles.css", "text/css; charset=utf-8"]],
+        ["/lending/app.js", ["dist/app.js", "text/javascript; charset=utf-8"]],
+      ]);
+      const page = pages.get(pathname);
+      if (request.method === "GET" && page) {
+        try {
+          const content = await readFile(new URL(`../../frontend/lending/${page[0]}`, import.meta.url));
+          response.writeHead(200, { "Content-Type": page[1]!, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }).end(content);
+        } catch { send(response, 503, { error: "Lending page is unavailable. Run npm run build:frontend in backend/lending." }); }
+        return;
+      }
       if (request.method === "GET" && pathname === "/health") {
-        send(response, 200, { status: "ok", synthetic: true, notice: DEMO_NOTICE }); return;
+        send(response, 200, { status: "ok", synthetic: true, notice: DEMO_NOTICE, aiAvailable: Boolean(rewrite) }); return;
       }
       if (request.method === "POST" && pathname === "/applications") {
         const input = await readJson(request);
@@ -72,7 +91,7 @@ export function createLendingServer(options: ServerOptions = {}) {
         const application: Application = { id: randomUUID(), expiresAt: now() + 60 * 60 * 1000,
           maskedPan: `${pan.slice(0, 2)}******${pan.slice(-2)}`, maskedPhone: `******${phone.slice(-4)}`,
           profile: buildProfile(input.scenario as Scenario | undefined ?? selectScenario(pan, phone)),
-          requestedAmount, monthlyBudget };
+          requestedAmount, monthlyBudget, chatHistory: [], chatPending: false };
         applications.set(application.id, application);
         send(response, 201, snapshot(application)); return;
       }
@@ -107,8 +126,14 @@ export function createLendingServer(options: ServerOptions = {}) {
         const offerId = input.offerId === undefined ? undefined : textField(input.offerId, "offerId", 80);
         if (input.useAi !== undefined && typeof input.useAi !== "boolean") throw new InputError("useAi must be boolean.");
         if (input.useAi === true && !rewrite) { send(response, 503, { error: "SARVAM_API_KEY is required for AI explanations. No AI request made." }); return; }
-        const explanation = await explainAssessment(snapshot(application).assessment, question, offerId, input.useAi === true ? rewrite : undefined);
-        send(response, 200, explanation); return;
+        if (application.chatPending) { send(response, 409, { error: "Please wait for the current reply." }); return; }
+        application.chatPending = true;
+        try {
+          const explanation = await explainAssessment(snapshot(application).assessment, question, offerId, input.useAi === true ? rewrite : undefined, application.chatHistory);
+          application.chatHistory.push({ role: "user", content: question }, { role: "assistant", content: explanation.answer });
+          application.chatHistory = application.chatHistory.slice(-12);
+          send(response, 200, explanation); return;
+        } finally { application.chatPending = false; }
       }
       send(response, 405, { error: "Method not allowed for this resource." });
     } catch (error) {
@@ -118,7 +143,7 @@ export function createLendingServer(options: ServerOptions = {}) {
   });
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const port = Number(process.env.PORT ?? 3001);
+  const port = Number(process.env.LENDING_PORT ?? process.env.PORT ?? 3002);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be an integer from 1 to 65535.");
   const server = createLendingServer({ apiKey: process.env.SARVAM_API_KEY });
   server.on("error", () => { console.error("Unable to start lending demo server; check whether the port is in use."); process.exitCode = 1; });

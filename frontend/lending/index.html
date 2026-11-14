@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#002970">
+  <meta name="description" content="Understand your credit profile, explore loan offers, and find a monthly payment that fits.">
+  <title>Lending with clarity · Paytm Hackathon</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23002970'/%3E%3Cpath d='M12 27V13h15m0 0v14m0-14L12 28' fill='none' stroke='%2300baf2' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/lending/styles.css">
+  <script type="module" src="/lending/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="header"><div class="shell nav">
+    <a class="brand" href="/lending/" aria-label="Paytm lending home">pay<span>tm</span><span class="brand-divider"></span><b>financial journeys</b></a>
+    <nav aria-label="Main navigation"><a href="http://127.0.0.1:3001/">Insurance</a><a class="active" href="/lending/" aria-current="page">Lending</a><a href="#how-it-works">How it works</a></nav>
+    <span class="demo-pill"><i></i> Prototype</span>
+  </div></header>
+  <main id="main" class="shell">
+    <div class="breadcrumb">Financial journeys <span>/</span> Personal loans</div>
+    <section id="welcome" class="welcome">
+      <div class="welcome-copy"><p class="eyebrow"><span class="tiny-line"></span> A CLEARER WAY TO BORROW</p>
+        <h1>Your next step.<br>A <em>clearer picture.</em></h1>
+        <p class="lead">Know where you stand. Understand your offers.<br>Find a repayment that feels right for you.</p>
+        <div class="hero-proof"><span>✓ Credit insights</span><span>✓ Budget-first offers</span><span>✓ Answers in plain language</span></div>
+        <div class="hero-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="float-chip">Your possibilities <span>↗</span></div><div class="mini-credit"><span>CREDIT HEALTH</span><strong>781<span>↗</span></strong><div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Illustrative profile · Very good</small></div><div class="float-note"><span>✦</span> Clarity before commitment</div></div>
+      </div>
+      <section class="start-card" aria-labelledby="start-title"><div class="card-topline"><span class="square-icon">↗</span><span class="soft-label">PERSONAL LOANS</span></div>
+        <h2 id="start-title">Let’s find your possibilities.</h2><p>Understand your profile and find offers that fit.</p>
+        <form id="application-form">
+          <label for="pan">PAN number</label><input id="pan" name="pan" placeholder="ABCDE1234F" maxlength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" autocomplete="off" spellcheck="false" required aria-describedby="identity-note">
+          <label for="phone">Mobile number</label><div class="phone-field"><span>+91</span><input id="phone" name="phone" placeholder="98765 43210" maxlength="10" pattern="[6-9][0-9]{9}" inputmode="numeric" autocomplete="off" required></div>
+          <div class="two-fields"><div><label for="requested">Looking to borrow</label><div class="rupee-field"><span>₹</span><input id="requested" name="requestedAmount" type="number" min="1000" max="10000000" step="1000" value="200000" required></div></div><div><label for="scenario">Sample profile</label><select id="scenario" name="scenario"><option value="">Choose automatically</option><option value="strong">Strong credit</option><option value="moderate">Building credit</option><option value="stressed">Needs attention</option></select></div></div>
+          <p id="identity-note" class="small muted">Use sample details. No real identity or credit check takes place.</p>
+          <button type="button" class="sample-link" id="sample-details">Use sample PAN &amp; phone <span>↗</span></button>
+          <label class="check"><input id="demo-consent" type="checkbox" required><span>I understand that profiles, transactions and loan offers are simulated.</span></label>
+          <button class="primary full" id="check-offers" type="submit">Explore my offers <span>→</span></button>
+          <p class="form-error" id="application-error" role="alert"></p>
+        </form>
+        <div class="private-note"><span>◇</span> Your PAN and phone are masked in the response.</div>
+      </section>
+    </section>
+
+    <section id="dashboard" hidden aria-label="Your lending dashboard">
+      <div class="dashboard-heading"><div><p class="eyebrow">YOUR LENDING SNAPSHOT</p><h1>A little clarity.<br class="mobile-break"> A lot more confidence.</h1><p id="customer-line" class="muted"></p></div><button type="button" id="start-over" class="outline">Change profile <span>↗</span></button></div>
+      <div class="demo-banner"><span class="info-dot">i</span><p><strong>Illustrative offers.</strong> Sample data and assessment rules; not offers issued by the named lenders. Chance labels are not approval probabilities.</p><span class="banner-label">DEMO</span></div>
+      <div class="dashboard-grid">
+        <aside class="sidebar">
+          <section class="card score-card"><div class="section-heading"><h2>Your credit picture</h2><span class="micro-tag">CREDIT</span></div><p class="small muted">Your credit profile at a glance</p>
+            <div id="score-gauge"></div><div id="credit-factors" class="credit-factors"></div>
+            <button type="button" id="report-button" class="text-button full">Explore full report <span>↗</span></button>
+          </section>
+          <section class="context-card"><span class="context-star">✦</span><p class="eyebrow">THE BIGGER PICTURE</p><h3>You’re more than<br>a credit score.</h3><p>Income, existing repayments and your budget all help shape an offer.</p><button type="button" class="text-button" id="profile-explain">Understand my profile <span>→</span></button></section>
+        </aside>
+        <div class="main-column">
+          <section class="card budget-card" aria-labelledby="budget-title"><div class="section-heading"><div><p class="eyebrow">BORROW COMFORTABLY</p><h2 id="budget-title">What works for your month?</h2></div><span class="square-icon pale">₹</span></div>
+            <p class="muted">Set a comfortable EMI for this new loan. We’ll keep offers within your repayment capacity.</p>
+            <form id="budget-form"><div class="budget-controls"><div class="budget-number"><label for="monthly-budget">Monthly EMI budget</label><div class="rupee-field"><span>₹</span><input id="monthly-budget" type="number" min="1" max="1000000" step="0.01" required></div></div><div class="budget-slider"><label class="sr-only" for="budget-range">Adjust monthly EMI budget</label><input id="budget-range" type="range" min="1" max="30000" step="1"><div class="range-labels"><span>₹1</span><span id="range-max">₹30,000</span></div></div><button class="primary" type="submit">Update offers <span>→</span></button></div><div class="budget-caption"><span id="capacity-note"></span><button class="sample-link" type="button" id="reset-budget">Use assessed capacity</button></div><p id="budget-error" class="form-error" role="alert"></p></form>
+          </section>
+          <section id="offers-section" class="offers-section" aria-labelledby="offers-title"><div class="section-heading offers-heading"><div><p class="eyebrow">YOUR POSSIBILITIES</p><h2 id="offers-title">Offers, with the full picture.</h2></div><span class="result-count" id="offer-count"></span></div>
+            <div class="offer-toolbar"><div class="segmented" role="group" aria-label="Loan tenure"><button type="button" data-tenure="12">12 months</button><button type="button" data-tenure="24" aria-pressed="true" class="selected">24 months</button><button type="button" data-tenure="36">36 months</button></div><label class="check compact"><input type="checkbox" id="available-only"> Available only</label></div>
+            <p id="offer-state" class="state-note" role="status"></p><div id="offer-list" class="offer-list"></div>
+            <p class="small muted offer-disclaimer">Reducing-balance rates · Processing fee ₹0. Compare total repayment, not just EMI.</p>
+          </section>
+          <section class="card activity-card"><div class="section-heading"><div><p class="eyebrow">TRANSACTION CONTEXT</p><h2>Your activity, in perspective.</h2></div><span id="transaction-points" class="points-badge"></span></div><p class="muted">Supporting cash-flow context. More spending doesn’t mean better eligibility.</p><div id="transaction-summary" class="activity-stats"></div><div class="section-actions"><button class="outline" type="button" id="transactions-button">View transaction history <span>↗</span></button><button class="text-button" type="button" id="income-button">Cross-check salary details <span>→</span></button></div><p id="income-state" class="small muted"></p></section>
+        </div>
+      </div>
+    </section>
+    <section id="how-it-works" class="how-section"><div><p class="eyebrow">A LITTLE GUIDANCE GOES A LONG WAY</p><h2>From “why?” to “what’s next.”</h2></div><div class="how-grid"><article><span>01</span><h3>See your picture</h3><p>Explore your credit history and the factors behind an offer.</p></article><article><span>02</span><h3>Find your comfort zone</h3><p>Choose a monthly budget and compare the full cost of borrowing.</p></article><article><span>03</span><h3>Ask your next question</h3><p>Get an understandable explanation and practical next steps.</p></article></div></section>
+  </main>
+  <footer><div class="shell"><span class="brand small-brand">pay<span>tm</span></span><p>Built for clearer financial journeys.</p><span>Hackathon prototype · No real lending decisions</span></div></footer>
+  <button id="floating-chat" class="floating-chat" type="button" hidden><span>✦</span> Your lending guide <span>↗</span></button>
+
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div class="dialog-heading"><div><p class="eyebrow">CREDIT DETAILS</p><h2 id="detail-title">Your credit report</h2></div><button type="button" class="icon-button" id="close-details" aria-label="Close details">×</button></div><div id="detail-body"></div></dialog>
+  <dialog id="income-dialog" class="detail-dialog" aria-labelledby="income-title"><div class="dialog-heading"><div><p class="eyebrow">SALARY CROSS-CHECK</p><h2 id="income-title">Connect the income details.</h2></div><button type="button" class="icon-button" id="close-income" aria-label="Close salary check">×</button></div><p class="muted">Compare salary-slip fields with bank salary credits. This checks consistency, not document authenticity. PDF/image uploads aren’t supported.</p><form id="income-form"><div class="two-fields"><div><label for="employee-name">Employee name</label><input id="employee-name" required maxlength="200"></div><div><label for="employer-name">Employer</label><input id="employer-name" required maxlength="200"></div></div><div id="salary-months"></div><button type="button" id="fill-salary" class="sample-link">Fill from bank credits</button><p class="small muted">Sample autofill is for demonstration, not independent verification.</p><button class="primary full" type="submit">Cross-check three months <span>→</span></button><p id="income-error" class="form-error" role="alert"></p></form><div id="income-result" aria-live="polite"></div></dialog>
+  <dialog id="chat-dialog" class="chat-dialog" aria-labelledby="chat-title"><div class="chat-header"><span class="assistant-symbol">✦</span><div><h2 id="chat-title">Your lending guide</h2><p id="chat-mode">Answers from your report</p></div><button type="button" class="icon-button" id="close-chat" aria-label="Close lending guide">×</button></div><div id="chat-context" class="chat-context"></div><div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation"></div><div id="quick-questions" class="quick-questions"><button type="button" data-question="What is going well in my credit profile?">What am I doing well?</button><button type="button" data-question="Why is this offer smaller than the amount I requested?">Why this amount?</button><button type="button" data-question="What practical steps could improve my borrowing position without unnecessary spending or borrowing?">What can I do next?</button></div><form id="chat-form"><label class="sr-only" for="chat-input">Ask your lending question</label><div class="chat-input-row"><textarea id="chat-input" rows="1" maxlength="2000" required placeholder="Ask a question about your offers…"></textarea><button type="submit" class="primary" aria-label="Send message">↑</button></div><label class="check small"><input id="use-ai" type="checkbox"> Use Sarvam for conversational explanations</label><p id="chat-error" class="form-error" role="alert"></p></form><p class="chat-footnote">Understand the reasons. Plan your next step.</p></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

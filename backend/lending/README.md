@@ -1,11 +1,13 @@
 # Lending backend demo
 
-TypeScript backend only. PAN/phone -> synthetic CIBIL-style report, synthetic Paytm
+TypeScript lending API with a local frontend in `frontend/lending`. PAN/phone -> synthetic CIBIL-style report, synthetic Paytm
 transactions and AA bank transactions -> demo offers -> explanations and monthly
-budget recommendations. No frontend, real bureau access, AA integration, Paytm
+budget recommendations. No real bureau access, AA integration, Paytm
 transaction access, actual bank decisions or disbursal is implemented.
 
-Every report and offer is labelled synthetic. Partners A/B/C are fictional.
+API reports and offers retain synthetic metadata. The page has a single illustrative
+offers notice; cards use Hero FinCorp, Tata Capital and Aditya Birla Capital as
+example lender names, not actual offers from those institutions.
 Read [POLICIES.md](./POLICIES.md) for every threshold, formula and limitation.
 
 ## Versions and start
@@ -21,12 +23,17 @@ From `backend/lending`, with the baseline Node/npm active:
 ```powershell
 npm.cmd ci
 npm.cmd run typecheck
+npm.cmd run typecheck:frontend
 npm.cmd test
 npm.cmd start
 ```
 
 The repository-root `.env` supplies `SARVAM_API_KEY`; never commit or share it.
-The server listens on `http://127.0.0.1:3001`; root `.env` can set `PORT`.
+The server serves the page and API at `http://127.0.0.1:3002/lending/`.
+`npm start` builds the browser script from TypeScript before launching.
+Root `.env` can set `LENDING_PORT` (preferred) or `PORT`. The insurance frontend
+links to lending on port 3002; the lending navigation links back to insurance on 3001.
+Custom ports require updating those local navigation links.
 AI is invoked only when chat input explicitly includes `useAi: true`.
 Missing keys return 503 without making a request. Default chat works from local
 decision facts without any external request.
@@ -110,9 +117,9 @@ Compare total interest as well as EMI. No claim of approval is made.
 ```json
 {
   "salarySlips": [
-    { "employeeName": "Demo Applicant", "employer": "Demo Employer Pvt Ltd", "month": "2026-08", "netSalary": 40000 },
-    { "employeeName": "Demo Applicant", "employer": "Demo Employer Pvt Ltd", "month": "2026-09", "netSalary": 40000 },
-    { "employeeName": "Demo Applicant", "employer": "Demo Employer Pvt Ltd", "month": "2026-10", "netSalary": 40000 }
+    { "employeeName": "Arjun Mehta", "employer": "Northstar Technologies Pvt Ltd", "month": "2026-08", "netSalary": 40000 },
+    { "employeeName": "Arjun Mehta", "employer": "Northstar Technologies Pvt Ltd", "month": "2026-09", "netSalary": 40000 },
+    { "employeeName": "Arjun Mehta", "employer": "Northstar Technologies Pvt Ltd", "month": "2026-10", "netSalary": 40000 }
   ]
 }
 ```
@@ -148,4 +155,5 @@ Sessions are in memory, expire after one hour, and disappear on restart (maximum
 100 sessions). IDs act as local demo access tokens; do not share them. The server
 binds only to loopback. Production authentication, persistent storage, real KYC,
 bureau/AA consent and integrations, OCR/file uploads and real lender policies are
-outside this implementation. There is no frontend and no CORS configuration.
+outside this implementation. The frontend and API share one origin, so no CORS
+configuration is needed. Run the insurance server separately to use its navigation link.

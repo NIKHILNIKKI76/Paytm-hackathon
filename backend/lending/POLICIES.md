@@ -8,9 +8,21 @@ HDFC/SBI engine has been replaced. No actual bureau, bank or Paytm access occurs
 Real lender decision reasons and a contracted policy version would be needed to
 explain a production offer. Public marketing pages alone cannot establish causation.
 
+## Lender presentation
+
+Offer cards use Hero FinCorp, Tata Capital and Aditya Birla Capital as illustrative
+lender names. The existing internal partner IDs stay stable for API compatibility.
+These are not offers issued by those lenders, and no actual lender's underwriting
+or interest-rate policy is represented. One page-level notice explains this;
+individual answers use natural report-based language instead of repeating notices.
+
+Partnership reference pages (checked 2026-11-14):
+- https://www.herofincorp.com/paytm-guideline
+- https://paytm.com/offer/personal-loan-faqs
+
 ## Credit and offer rules
 
-- Three synthetic partners use minimum scores 720, 660 and 620; maximum amounts
+- The three illustrative offers use minimum scores 720, 660 and 620; maximum amounts
   INR 500,000, 300,000 and 150,000; annual reducing-balance rates 14%, 19% and 24%.
 - Demo entry conditions: resident Indian; age at least 23 and at most 60 at loan
   maturity; accepted monthly income at least INR 15,000; no reported overdues.
@@ -31,8 +43,9 @@ Accepted income is the minimum matching synthetic bank salary credit total acros
 the three demonstration months. A successful salary-slip check cannot increase it
 above that bank figure. Missing salary months produce zero accepted income.
 
-Existing monthly obligations = active-account EMIs + 5% of outstanding card
-balances (the card reserve is a demo assumption, not an actual statement amount).
+Existing monthly obligations = active-account EMIs + recorded minimum card
+payments. The fixture currently sets card minimums to 5% of outstanding balances;
+this is a data-generation assumption, not any issuer's actual minimum-payment rule.
 
 New-EMI capacity = max(0, min(40% of income - obligations,
 income - obligations - essential monthly expenses)). The customer's entered budget
@@ -74,6 +87,16 @@ Multiple salary credits from the same named employer in one month are summed.
 Matching records corroborate synthetic credits; they do not establish authenticity.
 The current input is structured salary-slip fields, not a PDF/image upload or OCR.
 
+The report includes account labels, due dates, paid dates, amount due, amount paid,
+carried arrears, month-end DPD, and payment delay. A card can be paid late but fully
+cleared before month end: payment delay is then positive while month-end DPD and
+overdue are zero. Bank debit records match the fixture's actual paid amounts.
+The bot receives the full report, salary credits, transaction histories and income
+check results. It also receives the actual binding offer limit: monthly budget,
+affordability, credit-profile cap, product maximum or rounding. Contextual credit
+observations are not substituted for a confirmed blocking/amount-limit reason.
+Both local and AI answers are short and question-specific; successfully repaid
+closed loans count as positive history even in a currently stressed profile.
 The bot exposes deterministic positive factors, limitations, evidence paths and
 next steps. The selected offer has explicit simulated decision reasons. Sarvam is
 an optional language layer and cannot set eligibility, change offers or execute

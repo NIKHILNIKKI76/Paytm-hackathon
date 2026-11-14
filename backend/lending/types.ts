@@ -13,7 +13,11 @@ export interface CreditAccount {
   monthlyEmi: number;
   creditLimit: number;
   overdue: number;
-  payments: { month: string; daysPastDue: number }[];
+  accountLabel: string;
+  reportedOn: string;
+  minimumMonthlyPayment: number;
+  payments: { month: string; dueDate: string; paidOn: string | null; amountDue: number;
+    amountPaid: number; overdueAtMonthEnd: number; daysPastDue: number; paymentDelayDays: number }[];
 }
 export interface Transaction {
   id: string;
@@ -27,6 +31,8 @@ export interface CreditReport {
   synthetic: true;
   provider: "Demo credit bureau (CIBIL-style; not issued by CIBIL)";
   asOf: string;
+  reportId: string;
+  enquiryWindow: { start: string; end: string };
   score: number;
   scoreChange: number;
   scoreLabel: string;
@@ -38,7 +44,7 @@ export interface CreditReport {
     recentEnquiries: { count: number; rating: Rating };
   };
   accounts: CreditAccount[];
-  enquiries: { id: string; lender: string; date: string; purpose: string; type: "hard" }[];
+  enquiries: { id: string; lender: string; date: string; purpose: string; requestedAmount: number; type: "hard" }[];
 }
 export interface Profile {
   synthetic: true;
@@ -68,7 +74,7 @@ export interface LoanOffer {
   policyId: string;
   available: boolean;
   chance: "high" | "medium" | "low";
-  chanceMeaning: "Demo category, not a probability or promise of approval";
+  chanceMeaning: "Illustrative chance category, not a probability or promise of approval";
   amount: number;
   annualInterestRate: number;
   tenureMonths: number;
@@ -77,6 +83,11 @@ export interface LoanOffer {
   totalInterest: number;
   processingFee: 0;
   reasons: Factor[];
+  amountLimits: {
+    productMaximum: number; creditProfileCap: number; affordabilityPrincipal: number;
+    budgetPrincipal: number | null;
+    binding: ("monthly_budget" | "affordability" | "credit_profile_cap" | "product_maximum" | "amount_rounding")[];
+  };
 }
 export interface Assessment {
   synthetic: true;
@@ -91,6 +102,18 @@ export interface Assessment {
     existingMonthlyObligations: number;
     policyMonthlyLimit: number;
     effectiveMonthlyLimit: number;
+    loanEmis: number;
+    cardMinimumPayments: number;
+    essentialMonthlyExpenses: number;
+  };
+  evidence: {
+    creditReport: CreditReport;
+    assessmentPolicy: { maximumObligationRatio: number; minimumIncome: number; minimumLoanAmount: number;
+      amountIncrement: number; illustrative: true };
+    income: { declaredMonthlyIncome: number; employer: string; employmentMonths: number;
+      salaryCredits: { month: string; amount: number; transactionIds: string[] }[]; check: IncomeCheck | null };
+    paytmTransactions: Transaction[];
+    bankTransactions: Transaction[];
   };
   transactionFactor: { points: number; maximumPoints: 5; eligibleMonthlyInflow: number; activeMonths: number; sentAmount: number; receivedAmount: number; explanation: string };
   factors: Factor[];

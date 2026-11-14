@@ -25,18 +25,18 @@ export function crossCheckIncome(profile: Profile, slips: SalarySlip[]): IncomeC
     if (seen.has(slip.month)) add("DUPLICATE_MONTH", slip.month, "Provide one salary-slip record per month.");
     seen.add(slip.month);
     if (!DEMO_MONTHS.includes(slip.month as typeof DEMO_MONTHS[number]))
-      add("OUTSIDE_BANK_PERIOD", slip.month, "This month is outside the synthetic bank-data period.");
+      add("OUTSIDE_BANK_PERIOD", slip.month, "This month is outside the supplied bank-data period.");
     if (normalized(slip.employeeName) !== normalized(profile.customerName))
-      add("NAME_MISMATCH", slip.month, "Employee name does not match the synthetic account holder.");
+      add("NAME_MISMATCH", slip.month, "Employee name does not match the account holder.");
     if (normalized(slip.employer) !== normalized(profile.employer))
-      add("EMPLOYER_MISMATCH", slip.month, "Employer does not match the synthetic salary source.");
+      add("EMPLOYER_MISMATCH", slip.month, "Employer does not match the salary-credit source.");
     const credits = profile.aaTransactions.filter(transaction => transaction.direction === "credit"
       && transaction.category === "salary" && transaction.date.startsWith(slip.month)
       && normalized(transaction.counterparty) === normalized(slip.employer));
     const total = credits.reduce((sum, transaction) => sum + transaction.amount, 0);
-    if (!credits.length) add("SALARY_CREDIT_NOT_FOUND", slip.month, "No matching synthetic salary credit was found.");
+    if (!credits.length) add("SALARY_CREDIT_NOT_FOUND", slip.month, "No matching salary credit was found.");
     else if (Math.abs(total - slip.netSalary) > 1)
-      add("AMOUNT_MISMATCH", slip.month, "Net salary differs from matching synthetic credits by more than INR 1.");
+      add("AMOUNT_MISMATCH", slip.month, `For ${slip.month}, the salary slip states INR ${slip.netSalary}, but matching bank credits total INR ${total}.`);
   }
   for (const month of DEMO_MONTHS) if (!seen.has(month))
     add("MISSING_MONTH", month, `Provide the salary-slip record for ${month}.`);

@@ -9,7 +9,9 @@
   },
   "packageManager": "npm@11.21.2",
   "scripts": {
-    "start": "node --env-file=../../.env server.ts",
+    "start": "npm run build:frontend && node --env-file=../../.env server.ts",
+    "build:frontend": "node ../../frontend/lending/build.ts",
+    "typecheck:frontend": "tsc --project ../../frontend/lending/tsconfig.json",
     "test": "node --test *.test.ts",
     "typecheck": "tsc --noEmit"
   },
