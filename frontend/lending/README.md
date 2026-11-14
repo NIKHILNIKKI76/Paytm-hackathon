@@ -35,6 +35,5 @@ the same fact-checked answer available if AI fails the wording checks.
 The salary feature compares structured fields; it does not upload PDFs/images.
 No credit enquiry, real application or loan acceptance is performed.
 
-The Insurance navigation link opens the existing insurance server on port 3001;
-its navigation includes the Lending link on port 3002. Neither app's frontend
-requires cross-origin API calls. See the backend README for port overrides.
+Run `npm start` from the repository root to serve both frontends and APIs on port 3001.
+Insurance is at `/` and Lending at `/lending/`. Set `PORT` to change the shared port.

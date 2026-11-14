@@ -29,11 +29,9 @@ npm.cmd start
 ```
 
 The repository-root `.env` supplies `SARVAM_API_KEY`; never commit or share it.
-The server serves the page and API at `http://127.0.0.1:3002/lending/`.
-`npm start` builds the browser script from TypeScript before launching.
-Root `.env` can set `LENDING_PORT` (preferred) or `PORT`. The insurance frontend
-links to lending on port 3002; the lending navigation links back to insurance on 3001.
-Custom ports require updating those local navigation links.
+`npm start` launches the shared server and builds the lending browser script.
+Open `http://127.0.0.1:3001/lending/` for Lending or `/` for Insurance.
+Set `PORT` in the root `.env` to change the shared port.
 AI is invoked only when chat input explicitly includes `useAi: true`.
 Missing keys return 503 without making a request. Default chat works from local
 decision facts without any external request.
@@ -156,4 +154,4 @@ Sessions are in memory, expire after one hour, and disappear on restart (maximum
 binds only to loopback. Production authentication, persistent storage, real KYC,
 bureau/AA consent and integrations, OCR/file uploads and real lender policies are
 outside this implementation. The frontend and API share one origin, so no CORS
-configuration is needed. Run the insurance server separately to use its navigation link.
+configuration is needed. Both applications run together through the shared root server.

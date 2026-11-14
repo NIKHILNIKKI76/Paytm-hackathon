@@ -2,12 +2,12 @@
 
 ## Start
 
-The verified demo instance is http://127.0.0.1:3003.
+The verified demo instance is http://127.0.0.1:3001.
 
 To restart the same instance and retain its local demo account:
 
 ```sh
-INSURANCE_PORT=3003 INSURANCE_DB=.insurance.sqlite.demo npm start
+PORT=3001 INSURANCE_DB=.insurance.sqlite.demo npm start
 ```
 
 The server loads the Sarvam key from the ignored local `.env`. Account details stay in ignored local SQLite files. Use the demo credentials supplied in chat; this is a local demo account, not a real customer identity.

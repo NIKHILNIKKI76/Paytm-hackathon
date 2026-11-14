@@ -2,8 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --env-file-if-exists=.env backend/insurance/server.js",
-    "test": "node --test backend/insurance/*.test.js",
+    "start": "node frontend/lending/build.ts && node --env-file-if-exists=.env backend/server.ts",
+    "test": "node frontend/lending/build.ts && node --test backend/server.test.ts backend/insurance/*.test.js backend/lending/*.test.ts",
     "sarvam": "node --env-file=.env sarvam.ts"
   },
   "dependencies": {

@@ -9,7 +9,7 @@ npm start
 npm test
 ```
 
-Open http://127.0.0.1:3001 for the frontend and API together. `npm start` loads `.env` if it exists; configure `SARVAM_API_KEY` there to enable AI features. Keep that file private. If another process uses port 3001, run `INSURANCE_PORT=3002 npm start` and open port 3002. The current frontend uses browser JavaScript and CSS, with no frontend build step.
+Open http://127.0.0.1:3001 for the frontend and API together. `npm start` loads `.env` if it exists; configure `SARVAM_API_KEY` there to enable AI features. Keep that file private. Lending is available at `/lending/` on the same port. Set `PORT` to change the shared port. Startup fails if that port is occupied. The lending browser script is built automatically.
 
 The API binds to localhost on port 3001 by default. Signed-in accounts, the latest renewal context, saved preferences and chat history are stored in local SQLite (`.insurance.sqlite`, configurable with `INSURANCE_DB`). Guest data and quote results are in memory. The demo supplies five fictional one-year comprehensive quotes. It stops at quote selection. The returned customer token is a demo bearer credential and must be kept private. A production deployment needs public-facing account recovery, email verification, HTTPS and insurer integrations.
 
